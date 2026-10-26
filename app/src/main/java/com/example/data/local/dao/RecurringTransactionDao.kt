@@ -18,6 +18,9 @@ interface RecurringTransactionDao {
     @Query("SELECT * FROM recurring_transactions WHERE is_active = 1 AND next_due_date <= :throughDate ORDER BY next_due_date")
     suspend fun dueThrough(throughDate: String): List<RecurringTransaction>
 
+    @Query("SELECT * FROM recurring_transactions WHERE id = :id LIMIT 1")
+    suspend fun getScheduleById(id: Long): RecurringTransaction?
+
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(schedule: RecurringTransaction): Long
 
