@@ -94,4 +94,25 @@ class FinanceBackupManagerTest : FirestoreEmulatorTestBase() {
             .put("local", local)
             .put("cloud", cloud)
     }
+    @Test
+    fun rejectsDuplicateCloudRecordIdsBeforeRestore() {
+        val expense = JSONObject()
+            .put("id", "same-id")
+            .put("title", "Rent")
+            .put("amount", 8000.0)
+            .put("category", "Housing")
+            .put("date", "2026-10-01")
+            .put("note", "")
+            .put("type", "expense")
+            .put("createdAtMillis", JSONObject.NULL)
+            .put("updatedAtMillis", JSONObject.NULL)
+        val root = emptyBackup()
+        root.getJSONObject("cloud").put("expenses", JSONArray().put(expense).put(expense))
+
+        val error = assertThrows(IllegalArgumentException::class.java) {
+            manager.inspectBackup(root.toString())
+        }
+        assertEquals(true, error.message?.contains("duplicate cloud expense IDs") == true)
+    }
+
 }
