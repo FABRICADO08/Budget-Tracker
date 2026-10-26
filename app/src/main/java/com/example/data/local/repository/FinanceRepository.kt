@@ -22,41 +22,54 @@ class FinanceRepository(private val database: AppDatabase) {
     private val loans = database.loanDao()
     private val transactions = database.transactionDao()
 
-    fun observeBudgets(userId: String, month: String): Flow<List<CategoryBudget>> = budgets.observeForMonth(userId, month)
+    fun observeBudgets(userId: String, month: String): Flow<List<CategoryBudget>> =
+        budgets.observeForMonth(userId, month)
 
-    suspend fun saveBudget(budget: CategoryBudget): Long {
-        require(budget.userId.isNotBlank()) { "A signed-in user is required to save a budget." }
+    suspend fun saveBudget(userId: String, budget: CategoryBudget): Long {
+        require(userId.isNotBlank()) { "A signed-in user is required to save a budget." }
         require(budget.category.isNotBlank()) { "Choose a category." }
-        require(budget.month.matches(Regex("\\d{4}-\\d{2}"))) { "Month must use yyyy-MM." }
-        require(budget.limitAmount.isFinite() && budget.limitAmount > 0.0) { "Budget must be greater than zero." }
-        return if (budget.id == 0L) budgets.insert(budget) else {
-            budgets.update(budget)
-            budget.id
+        require(budget.month.matches(Regex("\\d{4}-(0[1-9]|1[0-2])"))) { "Month must use yyyy-MM." }
+        require(budget.limitAmount.isFinite() && budget.limitAmount > 0.0) {
+            "Budget must be greater than zero."
+        }
+        val ownedBudget = budget.copy(userId = userId, category = budget.category.trim())
+        return if (ownedBudget.id == 0L) {
+            budgets.insert(ownedBudget)
+        } else {
+            requireNotNull(budgets.getById(userId, ownedBudget.id)) { "Budget not found for this account." }
+            budgets.update(ownedBudget)
+            ownedBudget.id
         }
     }
 
-    suspend fun deleteBudget(budget: CategoryBudget) = budgets.delete(budget)
+    suspend fun deleteBudget(userId: String, budget: CategoryBudget) {
+        val owned = requireNotNull(budgets.getById(userId, budget.id)) {
+            "Budget not found for this account."
+        }
+        budgets.delete(owned)
+    }
 
-    /** Inserts each threshold alert once per budget and month, even if this is called repeatedly. */
+    /** Inserts each threshold alert once per budget and month, even if called repeatedly. */
     suspend fun recordCrossedBudgetAlerts(
+        userId: String,
         budget: CategoryBudget,
         spent: Double,
         effectiveLimit: Double = budget.limitAmount
     ): List<Int> = database.withTransaction {
-            require(budget.id > 0L) { "Save the budget before recording alerts." }
-            val thresholds = BudgetRules.crossedThresholds(effectiveLimit, spent)
-            thresholds.forEach { threshold ->
-                alerts.insertIfNew(
-                    BudgetAlert(
-                        budgetId = budget.id,
-                        month = budget.month,
-                        thresholdPercent = threshold,
-                        actualAmount = spent
-                    )
+        requireNotNull(budgets.getById(userId, budget.id)) { "Budget not found for this account." }
+        val thresholds = BudgetRules.crossedThresholds(effectiveLimit, spent)
+        thresholds.forEach { threshold ->
+            alerts.insertIfNew(
+                BudgetAlert(
+                    budgetId = budget.id,
+                    month = budget.month,
+                    thresholdPercent = threshold,
+                    actualAmount = spent
                 )
-            }
-            thresholds
+            )
         }
+        thresholds
+    }
 
     fun observeRecurringSchedules() = recurring.observeAll()
 
