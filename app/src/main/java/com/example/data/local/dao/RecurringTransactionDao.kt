@@ -15,6 +15,10 @@ interface RecurringTransactionDao {
     @Query("SELECT * FROM recurring_transactions WHERE user_id = :userId ORDER BY is_active DESC, next_due_date ASC")
     fun observeAll(userId: String = ""): Flow<List<RecurringTransaction>>
 
+    /** Active reminder candidates are restricted to the authenticated account. */
+    @Query("SELECT * FROM recurring_transactions WHERE user_id = :userId AND is_active = 1 ORDER BY next_due_date ASC")
+    suspend fun getActiveForUser(userId: String): List<RecurringTransaction>
+
     @Query("SELECT * FROM recurring_transactions WHERE is_active = 1 AND next_due_date <= :throughDate ORDER BY next_due_date")
     suspend fun dueThrough(throughDate: String): List<RecurringTransaction>
 
@@ -41,6 +45,10 @@ interface RecurringTransactionDao {
 
     @Query("SELECT * FROM recurring_occurrences WHERE id = :id LIMIT 1")
     suspend fun getOccurrenceById(id: Long): RecurringOccurrence?
+
+    /** Compare-and-set prevents an occurrence that was already reminded from being marked again. */
+    @Query("UPDATE recurring_occurrences SET reminder_sent_at = :sentAt WHERE id = :id AND reminder_sent_at IS NULL")
+    suspend fun markReminderSentIfPending(id: Long, sentAt: Long): Int
 
     @Query("UPDATE recurring_occurrences SET status = :status, transaction_id = :transactionId WHERE id = :id")
     suspend fun markOccurrence(id: Long, status: String, transactionId: Long?)
