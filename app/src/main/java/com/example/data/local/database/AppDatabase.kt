@@ -140,6 +140,14 @@ abstract class AppDatabase : RoomDatabase() {
                     "CREATE INDEX IF NOT EXISTS index_loan_repayments_loan_id_paid_date " +
                         "ON loan_repayments(loan_id, paid_date)"
                 )
+                // Preserve legacy paid-in-full status as an explicit repayment history entry.
+                db.execSQL(
+                    """INSERT INTO loan_repayments (loan_id, amount, paid_date, note, created_at)
+                       SELECT id, amount,
+                              CASE WHEN repaid_date <> '' THEN repaid_date ELSE lent_date END,
+                              'Imported from legacy paid-in-full record', created_at
+                       FROM loans WHERE is_repaid = 1"""
+                )
             }
         }
 
