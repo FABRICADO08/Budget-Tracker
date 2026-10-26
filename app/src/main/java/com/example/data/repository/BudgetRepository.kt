@@ -346,6 +346,8 @@ class BudgetRepository(private val db: FirebaseFirestore) {
                 "updatedAt" to (profile.updatedAt ?: FieldValue.serverTimestamp())
             )
             userRef.set(values, com.google.firebase.firestore.SetOptions.merge()).await()
+        } else if (replaceExisting && backup.profile == null) {
+            userRef.delete().await()
         }
 
         val knownExpenses = if (replaceExisting) emptyList() else existing.expenses
