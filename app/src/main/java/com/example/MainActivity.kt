@@ -1243,6 +1243,7 @@ fun TransactionApp(
     if (restoreBackupPreview != null && restoreBackupJson != null) {
         BackupRestoreConfirmationDialog(
             preview = restoreBackupPreview!!,
+            currentUserId = currentUser.uid,
             mode = restoreMode,
             busy = backupBusy,
             error = backupError,
