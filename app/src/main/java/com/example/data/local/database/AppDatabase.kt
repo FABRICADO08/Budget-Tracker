@@ -57,6 +57,7 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL(
                     """CREATE TABLE IF NOT EXISTS category_budgets (
                         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        user_id TEXT NOT NULL DEFAULT '',
                         category TEXT NOT NULL,
                         month TEXT NOT NULL,
                         limit_amount REAL NOT NULL,
@@ -66,8 +67,8 @@ abstract class AppDatabase : RoomDatabase() {
                     )"""
                 )
                 db.execSQL(
-                    "CREATE UNIQUE INDEX IF NOT EXISTS index_category_budgets_category_month " +
-                        "ON category_budgets(category, month)"
+                    "CREATE UNIQUE INDEX IF NOT EXISTS index_category_budgets_user_id_category_month " +
+                        "ON category_budgets(user_id, category, month)"
                 )
                 db.execSQL(
                     """CREATE TABLE IF NOT EXISTS budget_alerts (
@@ -87,6 +88,7 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL(
                     """CREATE TABLE IF NOT EXISTS recurring_transactions (
                         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        user_id TEXT NOT NULL DEFAULT '',
                         description TEXT NOT NULL,
                         amount REAL NOT NULL,
                         category TEXT NOT NULL,
