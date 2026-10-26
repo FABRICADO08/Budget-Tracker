@@ -1,30 +1,44 @@
 package com.example.data.local.dao
 
 import androidx.room.Dao
-import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.example.data.local.entity.LoanRepayment
 import kotlinx.coroutines.flow.Flow
 
+/** Repayment reads/deletes must verify the owner through the parent loan row. */
 @Dao
 interface LoanRepaymentDao {
-    @Query("SELECT * FROM loan_repayments WHERE loan_id = :loanId ORDER BY paid_date DESC, id DESC")
-    fun observeForLoan(loanId: Long): Flow<List<LoanRepayment>>
+    @Query("""
+        SELECT r.* FROM loan_repayments r
+        INNER JOIN loans l ON l.id = r.loan_id
+        WHERE r.loan_id = :loanId AND l.user_id = :userId
+        ORDER BY r.paid_date DESC, r.id DESC
+    """)
+    fun observeForLoan(loanId: Long, userId: String): Flow<List<LoanRepayment>>
 
-    @Query("SELECT COALESCE(SUM(amount), 0.0) FROM loan_repayments WHERE loan_id = :loanId")
-    fun observeTotalForLoan(loanId: Long): Flow<Double>
+    @Query("""
+        SELECT COALESCE(SUM(r.amount), 0.0) FROM loan_repayments r
+        INNER JOIN loans l ON l.id = r.loan_id
+        WHERE r.loan_id = :loanId AND l.user_id = :userId
+    """)
+    fun observeTotalForLoan(loanId: Long, userId: String): Flow<Double>
 
-    @Query("SELECT COALESCE(SUM(amount), 0.0) FROM loan_repayments WHERE loan_id = :loanId")
-    suspend fun totalForLoan(loanId: Long): Double
+    @Query("""
+        SELECT COALESCE(SUM(r.amount), 0.0) FROM loan_repayments r
+        INNER JOIN loans l ON l.id = r.loan_id
+        WHERE r.loan_id = :loanId AND l.user_id = :userId
+    """)
+    suspend fun totalForLoan(loanId: Long, userId: String): Double
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(repayment: LoanRepayment): Long
 
-    @Delete
-    suspend fun delete(repayment: LoanRepayment)
-
-    @Query("DELETE FROM loan_repayments WHERE id = :id")
-    suspend fun deleteById(id: Long)
+    @Query("""
+        DELETE FROM loan_repayments WHERE id = :id AND loan_id IN (
+            SELECT id FROM loans WHERE user_id = :userId
+        )
+    """)
+    suspend fun deleteByIdForUser(id: Long, userId: String): Int
 }
