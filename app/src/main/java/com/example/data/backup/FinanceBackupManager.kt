@@ -352,24 +352,27 @@ class FinanceBackupManager(
             }
         }
 
-        // Ensure a loan with a complete repayment history is still marked paid after a merge.
+        // Reconcile paid-in-full status once after the import, avoiding one query per loan.
+        val repaymentsAfterRestore = repaymentDao.getAllForUser(userId)
+        val paidByLoan = repaymentsAfterRestore.groupBy { it.loanId }
         existingLoans.forEach { loan ->
-            val paid = repaymentDao.totalForLoan(loan.id, userId)
+            val history = paidByLoan[loan.id].orEmpty()
+            val paid = history.sumOf { it.amount }
             if (paid >= loan.amount - 0.000001 && !loan.isRepaid) {
-                val latestDate = repaymentDao.getAllForUser(userId)
-                    .filter { it.loanId == loan.id }
-                    .maxByOrNull { it.paidDate }?.paidDate ?: loan.repaidDate
+                val latestDate = history.maxByOrNull { it.paidDate }?.paidDate ?: loan.repaidDate
                 loanDao.updateRepaymentStatus(loan.id, userId, true, latestDate)
             }
         }
     }
 
     private fun transactionKey(value: Transaction): String =
-        listOf(value.date, value.amount.toString(), value.type, value.category.trim().lowercase(Locale.ROOT), value.description.trim().lowercase(Locale.ROOT))
+        listOf(value.date, value.amount.toString(), value.type, value.category.trim().lowercase(Locale.ROOT),
+            value.description.trim().lowercase(Locale.ROOT), value.createdAt.toString())
             .joinToString("|")
 
     private fun loanKey(value: Loan): String =
-        listOf(value.borrowerName.trim().lowercase(Locale.ROOT), value.amount.toString(), value.lentDate, value.dueDate, value.note.trim().lowercase(Locale.ROOT))
+        listOf(value.borrowerName.trim().lowercase(Locale.ROOT), value.amount.toString(), value.lentDate, value.dueDate,
+            value.note.trim().lowercase(Locale.ROOT), value.createdAt.toString())
             .joinToString("|")
 
     private fun budgetKey(value: CategoryBudget): String =
