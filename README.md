@@ -87,13 +87,25 @@ Defines CRUD operations for the `Transaction` entity:
 Thread-safe singleton implementation using double-checked locking:
 ```kotlin
 @Database(
-    entities = [Transaction::class, Loan::class],
-    version = 2,
+    entities = [
+        Transaction::class,
+        Loan::class,
+        CategoryBudget::class,
+        BudgetAlert::class,
+        RecurringTransaction::class,
+        RecurringOccurrence::class,
+        LoanRepayment::class
+    ],
+    version = 3,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun transactionDao(): TransactionDao
     abstract fun loanDao(): LoanDao
+    abstract fun categoryBudgetDao(): CategoryBudgetDao
+    abstract fun budgetAlertDao(): BudgetAlertDao
+    abstract fun recurringTransactionDao(): RecurringTransactionDao
+    abstract fun loanRepaymentDao(): LoanRepaymentDao
 
     companion object {
         @Volatile
@@ -163,9 +175,10 @@ Tests verify:
 - **Recurring bills and income:** create weekly, biweekly, monthly, quarterly, or annual schedules, see upcoming due dates, and record each occurrence as a transaction once. The schedule and occurrence tables use unique keys to prevent duplicate payment records.
 - **Bank CSV import:** choose a statement file, map date/description/amount/category/type columns, preview rows, and skip duplicate-looking entries before import. CSV parsing supports quoted fields, comma/semicolon/tab delimiters, and common South African amount formats.
 - **Partial loan repayments:** record repayment amounts, dates and notes; the repository rejects repayments greater than the remaining balance and keeps repayment history in Room.
-- **Build checks:** GitHub Actions runs JVM unit tests and assembles a debug APK for pull requests.
+- **Recurring notifications:** a unique WorkManager worker checks active schedules every six hours, filters schedules by the signed-in Firebase UID, and records that a due-date occurrence was reminded to avoid repeated notifications. Android 13+ notification permission is respected. WorkManager delivery is best-effort rather than exact-time.
+- **Build checks:** GitHub Actions runs JVM unit tests (including Firebase emulator tests) and assembles a debug APK for pull requests.
 
-Recurring due dates are currently shown in-app; this release does not claim that operating-system notifications are scheduled. Backup/restore and full per-user isolation of existing Room transaction/loan rows remain follow-up work before treating the app as multi-account secure.
+Recurring reminders are checked by WorkManager approximately every six hours for the currently signed-in account. Notifications require permission on Android 13+ and may be delayed by Android battery optimization; they are not exact-time alarms. The recurring screen includes a reminder-permission control and an immediate check action. Backup/restore and full per-user isolation of existing Room transaction/loan rows remain follow-up work before treating the app as multi-account secure.
 
 ## Category Budget Planner
 
