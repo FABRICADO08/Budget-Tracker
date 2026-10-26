@@ -22,9 +22,10 @@ class FinanceRepository(private val database: AppDatabase) {
     private val loans = database.loanDao()
     private val transactions = database.transactionDao()
 
-    fun observeBudgets(month: String): Flow<List<CategoryBudget>> = budgets.observeForMonth(month)
+    fun observeBudgets(month: String, userId: String = ""): Flow<List<CategoryBudget>> = budgets.observeForMonth(month, userId)
 
     suspend fun saveBudget(budget: CategoryBudget): Long {
+        require(budget.userId.isNotBlank()) { "A signed-in user is required." }
         require(budget.category.isNotBlank()) { "Choose a category." }
         require(budget.month.matches(Regex("\\d{4}-\\d{2}"))) { "Month must use yyyy-MM." }
         require(budget.limitAmount.isFinite() && budget.limitAmount > 0.0) { "Budget must be greater than zero." }
@@ -57,7 +58,7 @@ class FinanceRepository(private val database: AppDatabase) {
             thresholds
         }
 
-    fun observeRecurringSchedules() = recurring.observeAll()
+    fun observeRecurringSchedules(userId: String = "") = recurring.observeAll(userId)
 
     suspend fun createRecurringSchedule(
         description: String,
@@ -68,7 +69,8 @@ class FinanceRepository(private val database: AppDatabase) {
         nextDueDate: String,
         frequency: String,
         endDate: String? = null,
-        reminderDaysBefore: Int = 1
+        reminderDaysBefore: Int = 1,
+        userId: String = ""
     ): Long {
         require(description.isNotBlank()) { "Description is required." }
         require(amount.isFinite() && amount > 0.0) { "Amount must be greater than zero." }
@@ -82,6 +84,7 @@ class FinanceRepository(private val database: AppDatabase) {
         require(endDate == null || endDate >= nextDueDate) { "End date cannot be before the next due date." }
         return recurring.insert(
             com.example.data.local.entity.RecurringTransaction(
+                userId = userId,
                 description = description.trim(),
                 amount = amount,
                 category = category.trim(),
