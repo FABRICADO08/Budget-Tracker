@@ -142,6 +142,10 @@ class FinanceRoomTest {
             "INSERT INTO loans(id, borrower_name, amount, lent_date, due_date, note, is_repaid, repaid_date, created_at) " +
                 "VALUES (1, 'Existing borrower', 500.0, '2026-09-01', '2026-10-01', '', 0, '', 1)"
         )
+        oldDb.execSQL(
+            "INSERT INTO loans(id, borrower_name, amount, lent_date, due_date, note, is_repaid, repaid_date, created_at) " +
+                "VALUES (2, 'Legacy repaid borrower', 300.0, '2026-08-01', '2026-09-01', '', 1, '2026-08-25', 2)"
+        )
         oldDb.version = 2
         oldDb.close()
 
@@ -152,6 +156,8 @@ class FinanceRoomTest {
         try {
             assertEquals(42.50, migrated.transactionDao().getTransactionById(1L)!!.amount, 0.001)
             assertEquals("Existing borrower", migrated.loanDao().getById(1L)!!.borrowerName)
+            assertEquals(300.0, migrated.loanRepaymentDao().totalForLoan(2L), 0.001)
+            assertEquals(1, migrated.loanRepaymentDao().observeForLoan(2L).first().size)
             assertTrue(migrated.categoryBudgetDao().observeForMonth("2026-10").first().isEmpty())
         } finally {
             migrated.close()
