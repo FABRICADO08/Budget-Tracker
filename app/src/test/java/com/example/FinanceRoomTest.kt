@@ -45,7 +45,7 @@ class FinanceRoomTest {
     @Test
     fun categoryBudgetAndAlertPersistAndAlertThresholdIsUnique() = runBlocking {
         val budgetId = database.categoryBudgetDao().insert(
-            CategoryBudget(category = "Groceries", month = "2026-10", limitAmount = 2500.0)
+            CategoryBudget(userId = "test-user", category = "Groceries", month = "2026-10", limitAmount = 2500.0)
         )
         assertTrue(budgetId > 0)
         val alert = BudgetAlert(
@@ -158,7 +158,7 @@ class FinanceRoomTest {
             assertEquals("Existing borrower", migrated.loanDao().getById(1L)!!.borrowerName)
             assertEquals(300.0, migrated.loanRepaymentDao().totalForLoan(2L), 0.001)
             assertEquals(1, migrated.loanRepaymentDao().observeForLoan(2L).first().size)
-            assertTrue(migrated.categoryBudgetDao().observeForMonth("2026-10").first().isEmpty())
+            assertTrue(migrated.categoryBudgetDao().observeForMonth("test-user", "2026-10").first().isEmpty())
         } finally {
             migrated.close()
             context.deleteDatabase(name)
