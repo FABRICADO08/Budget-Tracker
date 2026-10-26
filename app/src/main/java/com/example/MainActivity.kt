@@ -203,6 +203,7 @@ class MainActivity : FragmentActivity() {
                         val aiChatViewModel: AiChatViewModel = viewModel()
 
                         TransactionApp(
+                            database = db,
                             viewModel = transactionViewModel,
                             scannerViewModel = slipScannerViewModel,
                             aiChatViewModel = aiChatViewModel,
@@ -326,6 +327,7 @@ fun BiometricLockScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TransactionApp(
+    database: AppDatabase,
     viewModel: TransactionViewModel,
     scannerViewModel: SlipScannerViewModel,
     aiChatViewModel: AiChatViewModel,
@@ -885,7 +887,7 @@ fun TransactionApp(
                 }
                 4 -> {
                     // Tab 4: Account-scoped monthly spending limits by category
-                    CategoryBudgetsScreen(transactions = transactions, userId = currentUser.uid)
+                    CategoryBudgetsScreen(database = database, transactions = transactions, userId = currentUser.uid)
                 }
             }
         }
