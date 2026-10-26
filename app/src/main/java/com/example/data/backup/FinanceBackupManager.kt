@@ -492,6 +492,28 @@ class FinanceBackupManager(
             local.recurringSchedules.size, local.recurringOccurrences.size, local.repayments.size
         )
         require(counts.all { it <= MAX_RECORDS_PER_COLLECTION }) { "Backup has too many records." }
+
+        ensureUniquePositiveIds("transaction", local.transactions.map { it.id })
+        ensureUniquePositiveIds("loan", local.loans.map { it.id })
+        ensureUniquePositiveIds("category budget", local.budgets.map { it.id })
+        ensureUniquePositiveIds("budget alert", local.alerts.map { it.id })
+        ensureUniquePositiveIds("recurring schedule", local.recurringSchedules.map { it.id })
+        ensureUniquePositiveIds("recurring occurrence", local.recurringOccurrences.map { it.id })
+        ensureUniquePositiveIds("loan repayment", local.repayments.map { it.id })
+
+        val budgetIds = local.budgets.map { it.id }.toSet()
+        require(local.alerts.all { it.budgetId in budgetIds }) {
+            "Backup contains a budget alert without its category budget."
+        }
+        val loanIds = local.loans.map { it.id }.toSet()
+        require(local.repayments.all { it.loanId in loanIds }) {
+            "Backup contains a repayment without its loan."
+        }
+        val scheduleIds = local.recurringSchedules.map { it.id }.toSet()
+        require(local.recurringOccurrences.all { it.recurringId in scheduleIds }) {
+            "Backup contains an occurrence without its recurring schedule."
+        }
+
         val cloudJson = root.getJSONObject("cloud")
         val profile = cloudJson.optJSONObject("profile")?.toProfile()
         val cloud = FinanceCloudBackup(
@@ -526,9 +548,9 @@ class FinanceBackupManager(
 
     private fun JSONObject.toTransaction(): Transaction = Transaction(
         id = getLong("id"),
-        amount = getDouble("amount").finiteAmount(),
+        amount = getDouble("amount").finiteAmount(allowZero = false),
         category = requiredString("category"),
-        date = requiredString("date"),
+        date = requiredString("date").also { require(isIsoDate(it)) },
         description = requiredString("description"),
         type = requiredString("type").also { require(it == "income" || it == "expense") },
         createdAt = getLong("createdAt")
@@ -640,11 +662,23 @@ class FinanceBackupManager(
     private fun JSONObject.timestamp(name: String): Timestamp? =
         nullableLong(name)?.let { Timestamp(Date(it)) }
 
+    private fun isIsoDate(value: String): Boolean {
+        if (!value.matches(Regex("\\d{4}-\\d{2}-\\d{2}"))) return false
+        return runCatching {
+            java.text.SimpleDateFormat("yyyy-MM-dd", Locale.ROOT).apply { isLenient = false }.parse(value)
+        }.getOrNull() != null
+    }
+
     private fun JSONObject.nullableString(name: String): String? =
         if (isNull(name)) null else getString(name)
 
     private fun JSONObject.nullableLong(name: String): Long? =
         if (isNull(name)) null else getLong(name)
+
+    private fun ensureUniquePositiveIds(kind: String, ids: List<Long>) {
+        require(ids.all { it > 0L }) { "Backup contains an invalid $kind ID." }
+        require(ids.size == ids.toSet().size) { "Backup contains duplicate $kind IDs." }
+    }
 
     private fun Double.finiteAmount(allowZero: Boolean = true): Double = also {
         require(isFinite() && if (allowZero) this >= 0.0 else this > 0.0) {
