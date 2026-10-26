@@ -41,6 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.local.entity.Transaction
+import com.example.util.ZarMoneyFormatter
 import com.example.ui.theme.ExpenseRed
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -309,7 +310,7 @@ fun MonthlySpendingBarChart(
                     }
 
                     Text(
-                        text = "Total: R%.2f".format(selectedBar.totalAmount),
+                        text = "Total: ${ZarMoneyFormatter.format(selectedBar.totalAmount)}",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = if (selectedBar.totalAmount > 0) ExpenseRed else MaterialTheme.colorScheme.onSurface

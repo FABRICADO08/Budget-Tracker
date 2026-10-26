@@ -74,6 +74,7 @@ import com.example.data.local.entity.Loan
 import com.example.data.local.entity.Transaction
 import com.example.ui.theme.ExpenseRed
 import com.example.ui.theme.IncomeGreen
+import com.example.util.ZarMoneyFormatter
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -269,7 +270,7 @@ fun ChartboardScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
-                                text = "R%.2f".format(currentMonthTotal),
+                                text = ZarMoneyFormatter.format(currentMonthTotal),
                                 style = MaterialTheme.typography.headlineSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
@@ -519,7 +520,7 @@ fun ChartboardScreen(
                                 fontWeight = FontWeight.SemiBold
                             )
                             Text(
-                                text = "R%.2f (${activeMonthPoint.count} txns)".format(activeMonthPoint.totalExpense),
+                                text = "${ZarMoneyFormatter.format(activeMonthPoint.totalExpense)} (${activeMonthPoint.count} txns)",
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
@@ -611,7 +612,7 @@ fun ChartboardScreen(
 
                                     Column(horizontalAlignment = Alignment.End) {
                                         Text(
-                                            text = "R%.2f".format(sum),
+                                            text = ZarMoneyFormatter.format(sum),
                                             style = MaterialTheme.typography.bodyMedium,
                                             fontWeight = FontWeight.Bold
                                         )
@@ -678,7 +679,7 @@ fun ChartboardScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = "R%.2f".format(netCashflow),
+                            text = ZarMoneyFormatter.format(netCashflow),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = if (netCashflow >= 0) IncomeGreen else ExpenseRed
@@ -733,7 +734,7 @@ fun ChartboardScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = "R%.2f".format(totalPending),
+                            text = ZarMoneyFormatter.format(totalPending),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = if (totalPending > 0) ExpenseRed else IncomeGreen

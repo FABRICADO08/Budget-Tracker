@@ -67,7 +67,6 @@ data class Transaction(
 Defines CRUD operations for the `Transaction` entity:
 - **Insert (`@Insert`)**:
   - `insert(transaction: Transaction): Long`
-  - `insertTransaction(transaction: Transaction): Long`
   - `insertAll(transactions: List<Transaction>)`
 - **Query (`@Query`)**:
   - `getAllTransactions(): Flow<List<Transaction>>`
@@ -79,10 +78,8 @@ Defines CRUD operations for the `Transaction` entity:
   - `getTotalExpenseForMonth(monthPrefix: String): Flow<Double?>`
 - **Update (`@Update`)**:
   - `update(transaction: Transaction)`
-  - `updateTransaction(transaction: Transaction)`
 - **Delete (`@Delete` & `@Query`)**:
   - `delete(transaction: Transaction)`
-  - `deleteTransaction(transaction: Transaction)`
   - `deleteById(id: Long)`
   - `deleteAll()`
 
@@ -109,7 +106,8 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "budget_tracker.db"
                 )
-                    .fallbackToDestructiveMigration()
+                    // Register explicit Room migrations before changing the schema version.
+                    // Destructive fallback is intentionally disabled to protect financial data.
                     .build()
                 INSTANCE = instance
                 instance
@@ -122,6 +120,14 @@ abstract class AppDatabase : RoomDatabase() {
 ```
 
 ---
+
+### Database migration safety
+
+The app intentionally does not use Room's destructive migration fallback. Before incrementing the database version or changing an entity, add and test an explicit `Migration`. An unknown migration path should fail visibly rather than silently erase transactions or loans. Existing records use the current `Double` amount representation; converting to integer minor units must be handled as a separate, tested data migration.
+
+### South African currency formatting
+
+The shared `ZarMoneyFormatter` uses the `en-ZA` locale and ZAR currency rules for statement exports and chartboard labels. Existing persisted amounts remain unchanged by this formatter.
 
 ## 🛠️ Tech Stack & Dependencies
 

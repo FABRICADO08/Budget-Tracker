@@ -33,23 +33,23 @@ object StatementExporter {
         sb.appendLine("Period:    $currentMonthTitle")
         sb.appendLine()
         sb.appendLine("--- MONTHLY BUDGET & SPENDING ---")
-        sb.appendLine("Current Month Spent: R%.2f".format(thisMonthTotal))
-        sb.appendLine("Monthly Budget Cap:  R%.2f".format(monthlyBudget))
+        sb.appendLine("Current Month Spent: ${ZarMoneyFormatter.format(thisMonthTotal)}")
+        sb.appendLine("Monthly Budget Cap:  ${ZarMoneyFormatter.format(monthlyBudget)}")
         if (monthlyBudget > 0) {
             val pct = (thisMonthTotal / monthlyBudget) * 100
             val remaining = monthlyBudget - thisMonthTotal
             sb.appendLine("Budget Utilization:  %.1f%%".format(pct))
             if (remaining >= 0) {
-                sb.appendLine("Remaining Budget:    R%.2f".format(remaining))
+                sb.appendLine("Remaining Budget:    ${ZarMoneyFormatter.format(remaining)}")
             } else {
-                sb.appendLine("OVER BUDGET BY:      R%.2f".format(-remaining))
+                sb.appendLine("OVER BUDGET BY:      ${ZarMoneyFormatter.format(-remaining)}")
             }
         }
-        sb.appendLine("All-Time Total Spent: R%.2f".format(allExpensesTotal))
+        sb.appendLine("All-Time Total Spent: ${ZarMoneyFormatter.format(allExpensesTotal)}")
         sb.appendLine()
         sb.appendLine("--- MONEY OWED (LOANS GIVEN) ---")
-        sb.appendLine("Pending Return:      R%.2f".format(pendingLoansTotal))
-        sb.appendLine("Recovered/Repaid:    R%.2f".format(repaidLoansTotal))
+        sb.appendLine("Pending Return:      ${ZarMoneyFormatter.format(pendingLoansTotal)}")
+        sb.appendLine("Recovered/Repaid:    ${ZarMoneyFormatter.format(repaidLoansTotal)}")
         sb.appendLine()
         sb.appendLine("--- RECENT EXPENSE TRANSACTIONS (${transactions.size} records) ---")
         sb.appendLine("Date       | Category       | Description          | Amount")
@@ -58,7 +58,7 @@ object StatementExporter {
             val date = t.date.padEnd(10).take(10)
             val cat = t.category.padEnd(14).take(14)
             val desc = t.description.padEnd(20).take(20)
-            val amt = "R%.2f".format(t.amount).padStart(10)
+            val amt = ZarMoneyFormatter.format(t.amount).padStart(10)
             sb.appendLine("$date | $cat | $desc | $amt")
         }
         if (loans.isNotEmpty()) {
@@ -71,7 +71,7 @@ object StatementExporter {
                 val lDate = l.lentDate.padEnd(10).take(10)
                 val dDate = (if (l.dueDate.isNotBlank()) l.dueDate else "N/A").padEnd(10).take(10)
                 val status = (if (l.isRepaid) "REPAID" else "PENDING").padEnd(8)
-                val amt = "R%.2f".format(l.amount).padStart(8)
+                val amt = ZarMoneyFormatter.format(l.amount).padStart(8)
                 sb.appendLine("$name | $lDate | $dDate | $status | $amt")
             }
         }
