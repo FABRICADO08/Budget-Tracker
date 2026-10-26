@@ -30,7 +30,7 @@ A modern, offline-first personal finance and expense tracking Android applicatio
 
 ### 4. Gemini AI Financial Chatbot
 - **Conversational Financial Advisor**: Multi-turn financial guidance powered by `gemini-3.8-flash`.
-- **Search & Maps Grounding**: Grounded with Google Search for financial rates and Google Maps to find nearby stores and banking options.
+- **Search Grounding**: Grounded with Google Search for up-to-date financial rates, savings strategies, and smart purchasing decisions.
 - **Voice Conversations**: Speech-to-text microphone button for asking financial questions hands-free.
 - **Quick Shortcuts**: Top-bar access button, bottom navigation tab, and Chartboard analysis launcher.
 
@@ -127,7 +127,7 @@ abstract class AppDatabase : RoomDatabase() {
 - **Local Storage**: Room Persistence Library (KSP)
 - **AI & Cloud**:
   - Firebase Authentication (Google Sign-In)
-  - Firebase AI Logic (`gemini-3.8-flash` with Google Search & Google Maps Tools)
+  - Firebase AI Logic (`gemini-3.8-flash` with Google Search Tool, with `gemini-3.1-flash-lite` fallback)
 - **Security**: AndroidX Biometric (`BiometricPrompt`)
 - **Architecture**: MVVM with `ViewModel`, Kotlin Coroutines, and `StateFlow`
 - **Testing**: Robolectric JVM unit tests for Room and ViewModels

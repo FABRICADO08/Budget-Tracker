@@ -416,7 +416,7 @@ fun TransactionApp(
                                     0 -> "Total: R%.2f".format(totalExpense)
                                     1 -> "Monthly Spending Analytics"
                                     2 -> "Owed: R%.2f".format(totalPendingLoans)
-                                    else -> "Search & Maps Grounded"
+                                    else -> "Google Search Grounded"
                                 },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
