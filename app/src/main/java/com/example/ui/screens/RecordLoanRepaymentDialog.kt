@@ -50,7 +50,7 @@ fun RecordLoanRepaymentDialog(
                 Text("Record a full or partial repayment from ${loan.borrowerName}.")
                 OutlinedTextField(
                     value = amount,
-                    onValueChange = { if (it.length <= 12 && it.matches(Regex("^\\\\d{0,9}(\\\\.\\\\d{0,2})?$"))) amount = it },
+                    onValueChange = { if (it.length <= 12 && it.matches(Regex("^\\d{0,9}(\\.\\d{0,2})?$"))) amount = it },
                     label = { Text("Amount received") },
                     prefix = { Text("R") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
