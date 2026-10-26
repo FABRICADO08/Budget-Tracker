@@ -10,12 +10,11 @@ import com.example.data.local.entity.Loan
 import com.example.data.local.entity.Transaction
 
 /**
- * Main Room Database configuration class for the application.
+ * Main Room database for locally persisted financial records.
  *
- * Defines the database configuration, includes the [Transaction] and [Loan] entities,
- * and acts as the app's main access point to persisted local data.
- *
- * Access is provided through a thread-safe Singleton pattern using double-checked locking.
+ * Important: destructive migration fallback is deliberately disabled. A schema upgrade
+ * without a registered migration must fail visibly rather than silently deleting a user's
+ * transactions and loans. Register and test every migration before incrementing [version].
  */
 @Database(
     entities = [Transaction::class, Loan::class],
@@ -24,14 +23,8 @@ import com.example.data.local.entity.Transaction
 )
 abstract class AppDatabase : RoomDatabase() {
 
-    /**
-     * Provides access to [TransactionDao] for performing CRUD operations on transactions.
-     */
     abstract fun transactionDao(): TransactionDao
 
-    /**
-     * Provides access to [LoanDao] for tracking loans given and repayments.
-     */
     abstract fun loanDao(): LoanDao
 
     companion object {
@@ -41,31 +34,23 @@ abstract class AppDatabase : RoomDatabase() {
         private var INSTANCE: AppDatabase? = null
 
         /**
-         * Returns the thread-safe singleton instance of [AppDatabase].
+         * Returns the thread-safe singleton database instance.
          *
-         * Uses double-checked locking with a [@Volatile] instance to prevent race conditions
-         * when multiple threads attempt to access the database concurrently.
-         *
-         * @param context Application context used to build the database.
-         * @return The active [AppDatabase] singleton instance.
+         * Do not add fallbackToDestructiveMigration(): the database contains user-owned
+         * financial data. When changing the schema, add an explicit Room Migration and
+         * cover it with a migration test before increasing the database version.
          */
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
-                val instance = Room.databaseBuilder(
+                INSTANCE ?: Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
                     DATABASE_NAME
-                )
-                    .fallbackToDestructiveMigration()
-                    .build()
-                INSTANCE = instance
-                instance
+                ).build().also { INSTANCE = it }
             }
         }
 
-        /**
-         * Alias for [getDatabase] to provide convenient singleton access.
-         */
+        /** Backwards-compatible alias used by existing screens. */
         fun getInstance(context: Context): AppDatabase = getDatabase(context)
     }
 }
