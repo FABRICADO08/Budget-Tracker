@@ -58,7 +58,7 @@ class FinanceRepository(private val database: AppDatabase) {
             thresholds
         }
 
-    fun observeRecurringSchedules(userId: String = "") = recurring.observeAll(userId)
+    fun observeRecurringSchedules(userId: String) = recurring.observeAll(userId)
 
     suspend fun createRecurringSchedule(
         description: String,
@@ -100,11 +100,11 @@ class FinanceRepository(private val database: AppDatabase) {
     }
 
     /** Creates the associated transaction and marks the occurrence paid atomically and once. */
-    suspend fun markRecurringBillPaid(occurrenceId: Long, date: String = ""): Boolean =
+    suspend fun markRecurringBillPaid(occurrenceId: Long, userId: String, date: String = ""): Boolean =
         database.withTransaction {
-            val occurrence = recurring.getOccurrenceById(occurrenceId) ?: return@withTransaction false
+            val occurrence = recurring.getOccurrenceById(occurrenceId, userId) ?: return@withTransaction false
             if (occurrence.status == "paid" || occurrence.transactionId != null) return@withTransaction false
-            val currentSchedule = recurring.getScheduleById(occurrence.recurringId)
+            val currentSchedule = recurring.getScheduleById(occurrence.recurringId, userId)
                 ?: return@withTransaction false
             val transactionId = transactions.insert(
                 Transaction(
@@ -112,37 +112,40 @@ class FinanceRepository(private val database: AppDatabase) {
                     category = currentSchedule.category,
                     date = date.ifBlank { occurrence.dueDate },
                     description = currentSchedule.description,
-                    type = currentSchedule.type
+                    type = currentSchedule.type,
+                    userId = currentSchedule.userId
                 )
             )
-            recurring.markOccurrence(occurrence.id, "paid", transactionId)
+            recurring.markOccurrence(occurrence.id, userId, "paid", transactionId)
             true
         }
 
-    fun observeRepayments(loanId: Long): Flow<List<LoanRepayment>> = repayments.observeForLoan(loanId)
+    fun observeRepayments(loanId: Long, userId: String): Flow<List<LoanRepayment>> = repayments.observeForLoan(loanId, userId)
 
-    fun observeOutstandingBalance(loanId: Long): Flow<Double> =
+    fun observeOutstandingBalance(loanId: Long, userId: String): Flow<Double> =
         kotlinx.coroutines.flow.combine(
-            kotlinx.coroutines.flow.flow { emit(loans.getById(loanId)?.amount ?: 0.0) },
-            repayments.observeTotalForLoan(loanId)
+            kotlinx.coroutines.flow.flow { emit(loans.getById(loanId, userId)?.amount ?: 0.0) },
+            repayments.observeTotalForLoan(loanId, userId)
         ) { principal, paid -> (principal - paid).coerceAtLeast(0.0) }
 
     suspend fun recordLoanRepayment(
         loanId: Long,
+        userId: String,
         amount: Double,
         paidDate: String,
         note: String = ""
     ): Long = database.withTransaction {
+        require(userId.isNotBlank()) { "A signed-in user is required." }
         require(amount.isFinite() && amount > 0.0) { "Repayment must be greater than zero." }
         require(paidDate.isNotBlank()) { "Repayment date is required." }
-        val loan = loans.getById(loanId) ?: error("Loan was not found.")
-        val paidBefore = repayments.totalForLoan(loanId)
+        val loan = loans.getById(loanId, userId) ?: error("Loan was not found for this account.")
+        val paidBefore = repayments.totalForLoan(loanId, userId)
         require(paidBefore + amount <= loan.amount + 0.000001) { "Repayment exceeds the outstanding balance." }
         val id = repayments.insert(
             LoanRepayment(loanId = loanId, amount = amount, paidDate = paidDate, note = note.trim())
         )
         if (paidBefore + amount >= loan.amount - 0.000001) {
-            loans.updateRepaymentStatus(loanId, true, paidDate)
+            loans.updateRepaymentStatus(loanId, userId, true, paidDate)
         }
         id
     }
