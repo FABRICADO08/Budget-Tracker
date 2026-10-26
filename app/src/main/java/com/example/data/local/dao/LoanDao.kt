@@ -18,7 +18,7 @@ interface LoanDao {
     @Query("SELECT * FROM loans WHERE id = :id LIMIT 1")
     suspend fun getById(id: Long): Loan?
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(loan: Loan): Long
 
     @Update
