@@ -1,0 +1,6 @@
+{
+  "name": "Budget Tracker",
+  "description": "Monitor daily expenses, categorize transactions, and track progress toward savings goals.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

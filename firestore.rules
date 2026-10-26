@@ -1,0 +1,120 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 64 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidUserProfile(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.dailyBudget is number && data.dailyBudget >= 0 && data.dailyBudget <= 1000000 &&
+             data.currencySymbol is string && data.currencySymbol.size() >= 1 && data.currencySymbol.size() <= 5 &&
+             (!('createdAt' in data) || data.createdAt is timestamp) &&
+             (!('updatedAt' in data) || data.updatedAt is timestamp);
+    }
+
+    function isValidExpense(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 100 &&
+             data.amount is number && data.amount > 0 && data.amount <= 10000000 &&
+             data.category is string && data.category.size() >= 1 && data.category.size() <= 50 &&
+             data.date is string && data.date.size() >= 8 && data.date.size() <= 10 &&
+             data.type is string && (data.type == 'expense' || data.type == 'income') &&
+             (!('note' in data) || (data.note is string && data.note.size() <= 500)) &&
+             (!('createdAt' in data) || data.createdAt is timestamp) &&
+             (!('updatedAt' in data) || data.updatedAt is timestamp);
+    }
+
+    function isValidSavingsGoal(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 100 &&
+             data.targetAmount is number && data.targetAmount > 0 && data.targetAmount <= 10000000 &&
+             data.currentAmount is number && data.currentAmount >= 0 && data.currentAmount <= 10000000 &&
+             (!('targetDate' in data) || (data.targetDate is string && data.targetDate.size() <= 20)) &&
+             (!('category' in data) || (data.category is string && data.category.size() <= 50)) &&
+             (!('colorHex' in data) || (data.colorHex is string && data.colorHex.size() <= 10)) &&
+             (!('createdAt' in data) || data.createdAt is timestamp) &&
+             (!('updatedAt' in data) || data.updatedAt is timestamp);
+    }
+
+    match /users/{userId} {
+      allow get, list: if isOwner(userId);
+
+      allow create: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       isValidUserProfile(incoming()) &&
+                       incoming().createdAt is timestamp &&
+                       incoming().createdAt <= request.time &&
+                       incoming().keys().hasAll(['userId', 'dailyBudget', 'currencySymbol', 'createdAt']) &&
+                       incoming().keys().hasOnly(['userId', 'dailyBudget', 'currencySymbol', 'createdAt', 'updatedAt']);
+
+      allow update: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       isValidUserProfile(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['dailyBudget', 'currencySymbol', 'updatedAt']);
+
+      allow delete: if isOwner(userId) && isValidId(userId);
+
+      match /expenses/{expenseId} {
+        allow get, list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(expenseId) &&
+                         isValidExpense(incoming()) &&
+                         incoming().createdAt is timestamp &&
+                         incoming().createdAt <= request.time &&
+                         incoming().keys().hasAll(['userId', 'title', 'amount', 'category', 'date', 'type', 'createdAt']) &&
+                         incoming().keys().hasOnly(['userId', 'title', 'amount', 'category', 'date', 'type', 'note', 'createdAt', 'updatedAt']);
+
+        allow update: if isOwner(userId) &&
+                         isValidId(expenseId) &&
+                         isValidExpense(incoming()) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['title', 'amount', 'category', 'date', 'type', 'note', 'updatedAt']);
+
+        allow delete: if isOwner(userId) && isValidId(expenseId);
+      }
+
+      match /savingsGoals/{goalId} {
+        allow get, list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(goalId) &&
+                         isValidSavingsGoal(incoming()) &&
+                         incoming().createdAt is timestamp &&
+                         incoming().createdAt <= request.time &&
+                         incoming().keys().hasAll(['userId', 'title', 'targetAmount', 'currentAmount', 'createdAt']) &&
+                         incoming().keys().hasOnly(['userId', 'title', 'targetAmount', 'currentAmount', 'targetDate', 'category', 'colorHex', 'createdAt', 'updatedAt']);
+
+        allow update: if isOwner(userId) &&
+                         isValidId(goalId) &&
+                         isValidSavingsGoal(incoming()) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['title', 'targetAmount', 'currentAmount', 'targetDate', 'category', 'colorHex', 'updatedAt']);
+
+        allow delete: if isOwner(userId) && isValidId(goalId);
+      }
+    }
+  }
+}

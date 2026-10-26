@@ -1,0 +1,65 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile with daily budget target and preferences",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Google Auth UID of the user" },
+        "dailyBudget": { "type": "number", "description": "Target daily spending limit" },
+        "currencySymbol": { "type": "string", "description": "Display currency symbol, e.g. $" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp of creation" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp of last update" }
+      },
+      "required": ["userId", "dailyBudget", "currencySymbol", "createdAt"]
+    },
+    "Expense": {
+      "title": "Expense",
+      "description": "Daily expense or transaction record",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Google Auth UID of the user" },
+        "title": { "type": "string", "description": "Title or merchant name of the expense" },
+        "amount": { "type": "number", "description": "Amount spent or received" },
+        "category": { "type": "string", "description": "Category: Food & Dining, Transportation, Groceries, Bills & Utilities, Entertainment, Shopping, Health, Other" },
+        "date": { "type": "string", "description": "ISO date string YYYY-MM-DD" },
+        "note": { "type": "string", "description": "Optional notes or details" },
+        "type": { "type": "string", "description": "Transaction type: expense or income" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp of creation" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp of last update" }
+      },
+      "required": ["userId", "title", "amount", "category", "date", "type", "createdAt"]
+    },
+    "SavingsGoal": {
+      "title": "SavingsGoal",
+      "description": "Savings goal with progress and target",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Google Auth UID of the user" },
+        "title": { "type": "string", "description": "Name of the savings goal" },
+        "targetAmount": { "type": "number", "description": "Target amount to save" },
+        "currentAmount": { "type": "number", "description": "Current saved amount" },
+        "targetDate": { "type": "string", "description": "Target date YYYY-MM-DD" },
+        "category": { "type": "string", "description": "Category for the goal, e.g. Emergency, Travel, Tech, Home" },
+        "colorHex": { "type": "string", "description": "Color hex code for visual badge" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp of creation" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp of last update" }
+      },
+      "required": ["userId", "title", "targetAmount", "currentAmount", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profile and budget settings"
+    },
+    "/users/{userId}/expenses/{expenseId}": {
+      "schema": "Expense",
+      "description": "User daily expense records"
+    },
+    "/users/{userId}/savingsGoals/{goalId}": {
+      "schema": "SavingsGoal",
+      "description": "User savings goals"
+    }
+  }
+}
