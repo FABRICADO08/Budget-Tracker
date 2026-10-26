@@ -23,6 +23,9 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE user_id = :userId ORDER BY date DESC, id DESC")
     fun getAllTransactions(userId: String): Flow<List<Transaction>>
 
+    @Query("SELECT * FROM transactions WHERE user_id = :userId ORDER BY date DESC, id DESC")
+    suspend fun getAllForBackup(userId: String): List<Transaction>
+
     @Query("SELECT * FROM transactions WHERE id = :id AND user_id = :userId LIMIT 1")
     suspend fun getTransactionById(id: Long, userId: String): Transaction?
 
