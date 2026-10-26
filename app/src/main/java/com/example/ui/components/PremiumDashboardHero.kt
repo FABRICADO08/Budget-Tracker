@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -90,7 +91,7 @@ fun PremiumDashboardHero(
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Surface(color = Color.White.copy(alpha = 0.12f), shape = RoundedCornerShape(14.dp)) {
                         Row(Modifier.padding(horizontal = 12.dp, vertical = 9.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.ReceiptLongCompat(), contentDescription = null, tint = Color(0xFFB7F7D8))
+                            Icon(Icons.Default.ReceiptLong, contentDescription = null, tint = Color(0xFFB7F7D8))
                             Spacer(Modifier.width(7.dp))
                             Text("$transactionCount transactions", color = Color.White, style = MaterialTheme.typography.labelLarge)
                         }
@@ -116,6 +117,3 @@ fun PremiumDashboardHero(
         }
     }
 }
-
-@Composable
-private fun ReceiptLongCompat() = Icons.Default.AccountBalanceWallet
