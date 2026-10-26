@@ -69,6 +69,7 @@ fun RecurringTransactionsScreen(
     var category by remember { mutableStateOf("Bills & Utilities") }
     var frequency by remember { mutableStateOf("MONTHLY") }
     var dueDate by remember { mutableStateOf(todayIso()) }
+    var reminderDays by remember { mutableStateOf("1") }
     var type by remember { mutableStateOf("expense") }
     var categoryMenu by remember { mutableStateOf(false) }
     var frequencyMenu by remember { mutableStateOf(false) }
@@ -130,6 +131,14 @@ fun RecurringTransactionsScreen(
                         }
                     }
                     OutlinedTextField(
+                        value = reminderDays,
+                        onValueChange = { if (it.length <= 2 && it.all(Char::isDigit)) reminderDays = it },
+                        label = { Text("Remind me days before (0–30)") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
                         value = dueDate,
                         onValueChange = { dueDate = it.take(10) },
                         label = { Text("First due date (yyyy-MM-dd)") },
@@ -157,7 +166,8 @@ fun RecurringTransactionsScreen(
                                     type = type,
                                     startDate = dueDate,
                                     nextDueDate = dueDate,
-                                    frequency = frequency
+                                    frequency = frequency,
+                                    reminderDaysBefore = reminderDays.toIntOrNull() ?: 1
                                 )
                                 database.recurringTransactionDao().insertOccurrenceIfNew(
                                     RecurringOccurrence(recurringId = id, dueDate = dueDate, amount = amount.toDouble())
@@ -275,7 +285,22 @@ private fun RecurringScheduleCard(
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("Next due: ${schedule.nextDueDate}", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                Text(if (schedule.isActive) "Active" else "Ended", color = if (schedule.isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium)
+                val dueState = when {
+                    !schedule.isActive -> "Ended"
+                    schedule.nextDueDate < todayIso() -> "Overdue"
+                    schedule.nextDueDate <= datePlusDaysIso(schedule.reminderDaysBefore) -> "Due soon"
+                    else -> "Upcoming"
+                }
+                Text(
+                    dueState,
+                    color = when (dueState) {
+                        "Overdue" -> MaterialTheme.colorScheme.error
+                        "Due soon" -> MaterialTheme.colorScheme.tertiary
+                        else -> MaterialTheme.colorScheme.primary
+                    },
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
             Button(onClick = onPay, enabled = schedule.isActive && !isWorking, modifier = Modifier.fillMaxWidth()) {
                 Text(if (isWorking) "Recording…" else if (schedule.type == "income") "Record income" else "Record payment")
@@ -287,3 +312,9 @@ private fun RecurringScheduleCard(
 private fun todayIso(): String = SimpleDateFormat("yyyy-MM-dd", Locale.ROOT).format(Date())
 private fun isIsoDate(value: String): Boolean = value.matches(Regex("\\d{4}-\\d{2}-\\d{2}")) && runCatching { SimpleDateFormat("yyyy-MM-dd", Locale.ROOT).apply { isLenient = false }.parse(value) }.getOrNull() != null
 private fun money(value: Double): String = String.format(Locale.US, "R%,.2f", value)
+
+private fun datePlusDaysIso(days: Int): String {
+    val calendar = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC"), Locale.ROOT)
+    calendar.add(java.util.Calendar.DAY_OF_MONTH, days.coerceIn(0, 30))
+    return SimpleDateFormat("yyyy-MM-dd", Locale.ROOT).format(calendar.time)
+}
