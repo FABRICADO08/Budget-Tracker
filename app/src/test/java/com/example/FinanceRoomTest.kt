@@ -5,6 +5,7 @@ import android.database.sqlite.SQLiteDatabase
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.example.data.local.database.AppDatabase
+import com.example.data.local.repository.LegacyDataOwnershipRepository
 import com.example.data.local.entity.BudgetAlert
 import com.example.data.local.entity.CategoryBudget
 import com.example.data.local.entity.Loan
@@ -17,6 +18,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -97,9 +99,9 @@ class FinanceRoomTest {
         database.loanRepaymentDao().insert(
             LoanRepayment(loanId = loanId, amount = 300.0, paidDate = "2026-09-25")
         )
-        assertEquals(1000.0, database.loanDao().getById(loanId)!!.amount, 0.001)
-        assertEquals(550.0, database.loanRepaymentDao().totalForLoan(loanId), 0.001)
-        assertEquals(2, database.loanRepaymentDao().observeForLoan(loanId).first().size)
+        assertEquals(1000.0, database.loanDao().getById(loanId, "")!!.amount, 0.001)
+        assertEquals(550.0, database.loanRepaymentDao().totalForLoan(loanId, ""), 0.001)
+        assertEquals(2, database.loanRepaymentDao().observeForLoan(loanId, "").first().size)
     }
 
     @Test
@@ -150,14 +152,20 @@ class FinanceRoomTest {
         oldDb.close()
 
         val migrated = Room.databaseBuilder(context, AppDatabase::class.java, name)
-            .addMigrations(AppDatabase.MIGRATION_2_3)
+            .addMigrations(AppDatabase.MIGRATION_2_3, AppDatabase.MIGRATION_3_4)
             .allowMainThreadQueries()
             .build()
         try {
-            assertEquals(42.50, migrated.transactionDao().getTransactionById(1L)!!.amount, 0.001)
-            assertEquals("Existing borrower", migrated.loanDao().getById(1L)!!.borrowerName)
-            assertEquals(300.0, migrated.loanRepaymentDao().totalForLoan(2L), 0.001)
-            assertEquals(1, migrated.loanRepaymentDao().observeForLoan(2L).first().size)
+            assertEquals(42.50, migrated.transactionDao().getTransactionById(1L, "")!!.amount, 0.001)
+            assertEquals("", migrated.transactionDao().getTransactionById(1L, "")!!.userId)
+            assertEquals("Existing borrower", migrated.loanDao().getById(1L, "")!!.borrowerName)
+            assertEquals("", migrated.loanDao().getById(1L, "")!!.userId)
+            assertEquals(300.0, migrated.loanRepaymentDao().totalForLoan(2L, ""), 0.001)
+            val ownershipStatus = LegacyDataOwnershipRepository(migrated).getStatus()
+            assertEquals(1, ownershipStatus.unownedTransactions)
+            assertEquals(2, ownershipStatus.unownedLoans)
+            assertTrue(ownershipStatus.needsDecision)
+            assertEquals(1, migrated.loanRepaymentDao().observeForLoan(2L, "").first().size)
             assertTrue(migrated.categoryBudgetDao().observeForMonth("2026-10", "test-user").first().isEmpty())
         } finally {
             migrated.close()
@@ -195,6 +203,49 @@ class FinanceRoomTest {
 
         assertEquals(listOf("Rent"), dao.getActiveForUser("account-a").map { it.description })
         assertTrue(dao.getActiveForUser("unknown-account").isEmpty())
+    }
+
+    @Test
+    fun loanReadsAndMutationsAreScopedToOwner() = runBlocking {
+        val loanId = database.loanDao().insert(
+            Loan(
+                borrowerName = "Private borrower",
+                amount = 400.0,
+                lentDate = "2026-10-01",
+                dueDate = "2026-11-01",
+                userId = "account-a"
+            )
+        )
+
+        assertEquals("Private borrower", database.loanDao().getById(loanId, "account-a")!!.borrowerName)
+        assertNull(database.loanDao().getById(loanId, "account-b"))
+        assertEquals(0, database.loanDao().updateRepaymentStatus(loanId, "account-b", true, "2026-10-25"))
+        assertEquals(0, database.loanDao().deleteById(loanId, "account-b"))
+        assertEquals("Private borrower", database.loanDao().getById(loanId, "account-a")!!.borrowerName)
+    }
+
+    @Test
+    fun legacyRecordsRequireExplicitOneTimeClaim() = runBlocking {
+        val transactionId = database.transactionDao().insert(
+            Transaction(amount = 75.0, category = "Food", date = "2026-10-20", description = "Legacy purchase")
+        )
+        val loanId = database.loanDao().insert(
+            Loan(borrowerName = "Legacy borrower", amount = 250.0, lentDate = "2026-10-01")
+        )
+        val repository = LegacyDataOwnershipRepository(database)
+
+        assertTrue(repository.getStatus().needsDecision)
+        val claimedStatus = repository.decide("account-a", claimRecords = true)
+        assertFalse(claimedStatus.needsDecision)
+        assertEquals("account-a", database.transactionDao().getTransactionById(transactionId, "account-a")!!.userId)
+        assertEquals("account-a", database.loanDao().getById(loanId, "account-a")!!.userId)
+
+        // A later account cannot claim or view records after the one-time decision.
+        repository.decide("account-b", claimRecords = true)
+        assertNull(database.transactionDao().getTransactionById(transactionId, "account-b"))
+        assertNull(database.loanDao().getById(loanId, "account-b"))
+        assertEquals(0, database.transactionDao().countUnowned())
+        assertEquals(0, database.loanDao().countUnowned())
     }
 
 }
