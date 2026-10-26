@@ -55,6 +55,7 @@ import com.example.domain.finance.BudgetRules
 import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
@@ -70,6 +71,7 @@ fun CategoryBudgetsScreen(
     var showEditor by remember { mutableStateOf(false) }
     var editingBudget by remember { mutableStateOf<CategoryBudget?>(null) }
     var loadError by remember { mutableStateOf<String?>(null) }
+    var carryoverAmounts by remember { mutableStateOf<Map<Long, Double>>(emptyMap()) }
     val scope = rememberCoroutineScope()
     val repository = remember(database) { FinanceRepository(database) }
     val budgetFlow = remember(database, month) { database.categoryBudgetDao().observeForMonth(month) }
@@ -78,13 +80,31 @@ fun CategoryBudgetsScreen(
 
     LaunchedEffect(budgets, transactions, month) {
         loadError = null
+        val previousMonth = runCatching {
+            val parser = SimpleDateFormat("yyyy-MM", Locale.ROOT)
+            val calendar = Calendar.getInstance().apply { time = requireNotNull(parser.parse(month)) }
+            calendar.add(Calendar.MONTH, -1)
+            parser.format(calendar.time)
+        }.getOrNull()
+        val carryovers = mutableMapOf<Long, Double>()
+        budgets.forEach { budget ->
+            val previous = previousMonth?.let { database.categoryBudgetDao().find(budget.category, it) }
+            if (previous?.carryUnused == true) {
+                val previousSpent = transactions.asSequence()
+                    .filter { it.type.equals("expense", ignoreCase = true) }
+                    .filter { it.date.startsWith(previous.month) && it.category.equals(previous.category, ignoreCase = true) }
+                    .sumOf { it.amount.coerceAtLeast(0.0) }
+                carryovers[budget.id] = (previous.limitAmount - previousSpent).coerceAtLeast(0.0)
+            }
+        }
+        carryoverAmounts = carryovers
         budgets.filterNot { it.isPaused }.forEach { budget ->
-            val spent = transactions
-                .asSequence()
+            val spent = transactions.asSequence()
                 .filter { it.type.equals("expense", ignoreCase = true) }
                 .filter { it.date.startsWith(month) && it.category.equals(budget.category, ignoreCase = true) }
                 .sumOf { it.amount.coerceAtLeast(0.0) }
-            runCatching { repository.recordCrossedBudgetAlerts(budget, spent) }
+            val effectiveLimit = budget.limitAmount + (carryovers[budget.id] ?: 0.0)
+            runCatching { repository.recordCrossedBudgetAlerts(budget, spent, effectiveLimit) }
                 .onFailure { loadError = it.message ?: "Could not save budget alert." }
         }
     }
@@ -142,7 +162,8 @@ fun CategoryBudgetsScreen(
                             .filter { it.type.equals("expense", ignoreCase = true) }
                             .filter { it.date.startsWith(month) && it.category.equals(budget.category, ignoreCase = true) }
                             .sumOf { it.amount.coerceAtLeast(0.0) }
-                        val progress = BudgetRules.progress(budget.limitAmount, listOf("expense" to spent))
+                        val effectiveLimit = budget.limitAmount + (carryoverAmounts[budget.id] ?: 0.0)
+                        val progress = BudgetRules.progress(effectiveLimit, listOf("expense" to spent))
                         val percent = (progress.percentUsed / 100.0).toFloat().coerceIn(0f, 1f)
                         Card(
                             modifier = Modifier.fillMaxWidth(),
@@ -205,7 +226,7 @@ fun CategoryBudgetsScreen(
                                         }
                                     )
                                 }
-                                val crossed = BudgetRules.crossedThresholds(budget.limitAmount, spent)
+                                val crossed = BudgetRules.crossedThresholds(effectiveLimit, spent)
                                 if (!budget.isPaused && crossed.isNotEmpty()) {
                                     Text(
                                         "Threshold reached: ${crossed.joinToString("%, ")}%",
