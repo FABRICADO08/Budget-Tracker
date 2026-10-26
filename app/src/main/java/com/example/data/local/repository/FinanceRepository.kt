@@ -96,8 +96,7 @@ class FinanceRepository(private val database: AppDatabase) {
         database.withTransaction {
             val occurrence = recurring.getOccurrenceById(occurrenceId) ?: return@withTransaction false
             if (occurrence.status == "paid" || occurrence.transactionId != null) return@withTransaction false
-            val schedule = recurring.observeAll() // Do not collect a Flow inside the transaction.
-            val currentSchedule = database.queryScheduleById(occurrence.recurringId)
+            val currentSchedule = recurring.getScheduleById(occurrence.recurringId)
                 ?: return@withTransaction false
             val transactionId = transactions.insert(
                 Transaction(
