@@ -15,7 +15,10 @@ interface LoanDao {
     @Query("SELECT * FROM loans ORDER BY is_repaid ASC, created_at DESC")
     fun getAllLoans(): Flow<List<Loan>>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Query("SELECT * FROM loans WHERE id = :id LIMIT 1")
+    suspend fun getById(id: Long): Loan?
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(loan: Loan): Long
 
     @Update
