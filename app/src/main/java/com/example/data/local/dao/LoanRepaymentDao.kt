@@ -16,6 +16,9 @@ interface LoanRepaymentDao {
     @Query("SELECT COALESCE(SUM(amount), 0.0) FROM loan_repayments WHERE loan_id = :loanId")
     fun observeTotalForLoan(loanId: Long): Flow<Double>
 
+    @Query("SELECT COALESCE(SUM(amount), 0.0) FROM loan_repayments WHERE loan_id = :loanId")
+    suspend fun totalForLoan(loanId: Long): Double
+
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(repayment: LoanRepayment): Long
 
