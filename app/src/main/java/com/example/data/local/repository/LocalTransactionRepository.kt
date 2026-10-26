@@ -17,16 +17,16 @@ class LocalTransactionRepository(private val transactionDao: TransactionDao) {
         transactionDao.getTransactionById(id)
 
     suspend fun insert(transaction: Transaction): Long =
-        transactionDao.insertTransaction(transaction)
+        transactionDao.insert(transaction)
 
     suspend fun insertAll(transactions: List<Transaction>) =
         transactionDao.insertAll(transactions)
 
     suspend fun update(transaction: Transaction) =
-        transactionDao.updateTransaction(transaction)
+        transactionDao.update(transaction)
 
     suspend fun delete(transaction: Transaction) =
-        transactionDao.deleteTransaction(transaction)
+        transactionDao.delete(transaction)
 
     suspend fun deleteById(id: Long) =
         transactionDao.deleteById(id)
