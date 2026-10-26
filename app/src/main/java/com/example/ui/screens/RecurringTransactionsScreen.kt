@@ -92,7 +92,7 @@ fun RecurringTransactionsScreen(
                     )
                     OutlinedTextField(
                         value = amount,
-                        onValueChange = { if (it.length <= 12 && it.matches(Regex("^\\\\d{0,9}(\\\\.\\\\d{0,2})?$"))) amount = it },
+                        onValueChange = { if (it.length <= 12 && it.matches(Regex("^\\d{0,9}(\\.\\d{0,2})?$"))) amount = it },
                         label = { Text("Amount (ZAR)") },
                         prefix = { Text("R") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
