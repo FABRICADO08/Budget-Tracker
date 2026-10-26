@@ -9,6 +9,7 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "recurring_transactions", indices = [Index(value = ["is_active", "next_due_date"])])
 data class RecurringTransaction(
     @PrimaryKey(autoGenerate = true) val id: Long = 0L,
+    @ColumnInfo(name = "user_id", defaultValue = "''") val userId: String = "",
     @ColumnInfo(name = "description") val description: String,
     @ColumnInfo(name = "amount") val amount: Double,
     @ColumnInfo(name = "category") val category: String,
