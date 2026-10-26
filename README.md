@@ -84,58 +84,26 @@ Defines CRUD operations for the `Transaction` entity:
   - `deleteAll()`
 
 ### 3. Room Database: `AppDatabase` (`com.example.data.local.database.AppDatabase`)
-Thread-safe singleton implementation using double-checked locking:
-```kotlin
-@Database(
-    entities = [
-        Transaction::class,
-        Loan::class,
-        CategoryBudget::class,
-        BudgetAlert::class,
-        RecurringTransaction::class,
-        RecurringOccurrence::class,
-        LoanRepayment::class
-    ],
-    version = 3,
-    exportSchema = false
-)
-abstract class AppDatabase : RoomDatabase() {
-    abstract fun transactionDao(): TransactionDao
-    abstract fun loanDao(): LoanDao
-    abstract fun categoryBudgetDao(): CategoryBudgetDao
-    abstract fun budgetAlertDao(): BudgetAlertDao
-    abstract fun recurringTransactionDao(): RecurringTransactionDao
-    abstract fun loanRepaymentDao(): LoanRepaymentDao
 
-    companion object {
-        @Volatile
-        private var INSTANCE: AppDatabase? = null
+The current Room schema is **version 4** and includes transactions, loans, category budgets, budget alerts, recurring schedules and occurrences, repayment history, and a one-time legacy ownership decision.
 
-        fun getDatabase(context: Context): AppDatabase {
-            return INSTANCE ?: synchronized(this) {
-                val instance = Room.databaseBuilder(
-                    context.applicationContext,
-                    AppDatabase::class.java,
-                    "budget_tracker.db"
-                )
-                    // Register explicit Room migrations before changing the schema version.
-                    // Destructive fallback is intentionally disabled to protect financial data.
-                    .build()
-                INSTANCE = instance
-                instance
-            }
-        }
-
-        fun getInstance(context: Context): AppDatabase = getDatabase(context)
-    }
-}
-```
+- `MIGRATION_2_3` adds finance tables and backfills legacy paid-in-full loan repayments.
+- `MIGRATION_3_4` adds the `user_id` owner column to transactions and loans, plus owner/date indexes and the legacy ownership decision table.
+- Both migrations are registered by the database builder. No destructive migration fallback is enabled.
+- Transaction and loan DAOs require the Firebase UID for reads, updates, and deletes. New writes override entity-provided ownership with the authenticated UID.
+- Existing transactions and loans are migrated with a blank owner; the app asks the user before assigning those records to the first account. A one-time decision prevents a second account on the device from claiming the same records.
 
 ---
 
 ### Database migration safety
 
 The app intentionally does not use Room's destructive migration fallback. Before incrementing the database version or changing an entity, add and test an explicit `Migration`. An unknown migration path should fail visibly rather than silently erase transactions or loans. Existing records use the current `Double` amount representation; converting to integer minor units must be handled as a separate, tested data migration.
+
+### Local account ownership
+
+Transactions and loans are stored locally in Room and tagged with the authenticated Firebase UID. Every production query and mutation is owner-scoped. Room remains the local source of truth; this update does not imply cloud synchronization of these records.
+
+Rows written by earlier versions do not contain an owner. They remain unassigned after migration until the user explicitly claims them. If the user declines, the data is preserved in the local database but hidden from signed-in accounts. This avoids automatically attaching one device's past financial history to whichever account signs in next.
 
 ### South African currency formatting
 
