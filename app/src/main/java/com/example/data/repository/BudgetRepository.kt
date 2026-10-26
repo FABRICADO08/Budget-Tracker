@@ -346,8 +346,17 @@ class BudgetRepository(private val db: FirebaseFirestore) {
                 "updatedAt" to (profile.updatedAt ?: FieldValue.serverTimestamp())
             )
             userRef.set(values, com.google.firebase.firestore.SetOptions.merge()).await()
-        } else if (replaceExisting && backup.profile == null) {
-            userRef.delete().await()
+        } else if (replaceExisting && backup.profile == null && existing.profile != null) {
+            // Clear only known profile fields; preserve the root user document and any unrelated
+            // account metadata that this backup format does not own.
+            userRef.update(
+                mapOf(
+                    "dailyBudget" to FieldValue.delete(),
+                    "currencySymbol" to FieldValue.delete(),
+                    "createdAt" to FieldValue.delete(),
+                    "updatedAt" to FieldValue.delete()
+                )
+            ).await()
         }
 
         val knownExpenses = if (replaceExisting) emptyList() else existing.expenses
