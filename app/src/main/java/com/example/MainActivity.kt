@@ -126,6 +126,7 @@ import com.example.data.local.entity.Transaction
 import com.example.ui.auth.AuthScreen
 import com.example.ui.auth.signOut
 import com.example.ui.components.MonthlySpendingBarChart
+import com.example.ui.components.PremiumDashboardHero
 import com.example.ui.screens.AiChatScreen
 import com.example.ui.screens.ChartboardScreen
 import com.example.ui.screens.BankCsvImportDialog
@@ -370,6 +371,11 @@ fun TransactionApp(
 
     val totalExpense = transactions.filter { it.type == "expense" }.sumOf { it.amount }
     val totalPendingLoans = loans.filter { !it.isRepaid }.sumOf { it.amount }
+    val currentMonthPrefix = remember { SimpleDateFormat("yyyy-MM", Locale.ROOT).format(Date()) }
+    val currentMonthTransactions = remember(transactions, currentMonthPrefix) {
+        transactions.filter { it.date.startsWith(currentMonthPrefix) }
+    }
+    val currentMonthSpend = currentMonthTransactions.filter { it.type.equals("expense", true) }.sumOf { it.amount.coerceAtLeast(0.0) }
 
     // Zero-permission Android Photo Picker for receipt slips
     val photoPickerLauncher = rememberLauncherForActivityResult(
@@ -656,7 +662,17 @@ fun TransactionApp(
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
                         verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
-                        // 1. Current Month Total Card
+                        item {
+                            PremiumDashboardHero(
+                                userName = currentUser.displayName?.substringBefore(" ").orEmpty(),
+                                monthSpend = currentMonthSpend,
+                                transactionCount = currentMonthTransactions.size,
+                                onBudgetsClick = { selectedTab = 4 },
+                                onBillsClick = { selectedTab = 5 }
+                            )
+                        }
+
+                        // Monthly budget target and progress
                         item {
                             MonthlyExpenditureSummary(viewModel = viewModel, userId = currentUser.uid)
                         }
