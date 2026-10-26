@@ -136,6 +136,7 @@ class FinanceBackupManager(
         requireCurrentUser(currentUserId)
         val backup = parseAndValidate(json) // Complete validation happens before the first write.
         val priorCloudSnapshot = budgetRepository.exportBackupData(currentUserId)
+        val priorMonthlyBudgetCap = BudgetPreferences.getMonthlyBudgetCap(context, currentUserId)
 
         try {
             budgetRepository.restoreBackupData(
@@ -143,13 +144,16 @@ class FinanceBackupManager(
                 backup = backup.cloud,
                 replaceExisting = mode == BackupRestoreMode.REPLACE
             )
-            restoreLocalAtomically(backup.local, currentUserId, mode)
             if (mode == BackupRestoreMode.REPLACE) {
                 BudgetPreferences.setMonthlyBudgetCap(context, currentUserId, backup.local.monthlyBudgetCap)
             }
+            restoreLocalAtomically(backup.local, currentUserId, mode)
         } catch (cancelled: CancellationException) {
             // The Room transaction rolls itself back. Restore cloud state even if the caller was
             // cancelled after the cloud write finished but before Room restoration completed.
+            if (mode == BackupRestoreMode.REPLACE) {
+                BudgetPreferences.setMonthlyBudgetCap(context, currentUserId, priorMonthlyBudgetCap)
+            }
             kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
                 runCatching {
                     budgetRepository.restoreBackupData(
@@ -161,6 +165,9 @@ class FinanceBackupManager(
             }
             throw cancelled
         } catch (error: Exception) {
+            if (mode == BackupRestoreMode.REPLACE) {
+                BudgetPreferences.setMonthlyBudgetCap(context, currentUserId, priorMonthlyBudgetCap)
+            }
             try {
                 budgetRepository.restoreBackupData(
                     userId = currentUserId,
@@ -198,16 +205,18 @@ class FinanceBackupManager(
         }
     }
 
-    private suspend fun readLocalSnapshot(userId: String): LocalBackupData = LocalBackupData(
-        transactions = database.transactionDao().getAllForBackup(userId),
-        loans = database.loanDao().getAllForBackup(userId),
-        budgets = database.categoryBudgetDao().getAllForUser(userId),
-        alerts = database.budgetAlertDao().getAllForUser(userId),
-        recurringSchedules = database.recurringTransactionDao().getAllForUser(userId),
-        recurringOccurrences = database.recurringTransactionDao().getAllOccurrencesForUser(userId),
-        repayments = database.loanRepaymentDao().getAllForUser(userId),
-        monthlyBudgetCap = BudgetPreferences.getMonthlyBudgetCap(context, userId)
-    )
+    private suspend fun readLocalSnapshot(userId: String): LocalBackupData = database.withTransaction {
+        LocalBackupData(
+            transactions = database.transactionDao().getAllForBackup(userId),
+            loans = database.loanDao().getAllForBackup(userId),
+            budgets = database.categoryBudgetDao().getAllForUser(userId),
+            alerts = database.budgetAlertDao().getAllForUser(userId),
+            recurringSchedules = database.recurringTransactionDao().getAllForUser(userId),
+            recurringOccurrences = database.recurringTransactionDao().getAllOccurrencesForUser(userId),
+            repayments = database.loanRepaymentDao().getAllForUser(userId),
+            monthlyBudgetCap = BudgetPreferences.getMonthlyBudgetCap(context, userId)
+        )
+    }
 
     private suspend fun restoreLocalAtomically(
         backup: LocalBackupData,
