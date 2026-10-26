@@ -421,23 +421,41 @@ class BudgetRepository(private val db: FirebaseFirestore) {
 
     private fun validateCloudBackup(backup: FinanceCloudBackup) {
         backup.profile?.let {
-            require(it.dailyBudget.isFinite() && it.dailyBudget >= 0.0) { "Backup contains an invalid daily budget." }
+            require(it.dailyBudget.isFinite() && it.dailyBudget in 0.0..1_000_000.0) {
+                "Backup contains an invalid daily budget."
+            }
+            require(it.currencySymbol.length in 1..5) { "Backup contains an invalid currency symbol." }
         }
         require(backup.expenses.size <= 50_000) { "Backup contains too many cloud expenses." }
         require(backup.savingsGoals.size <= 10_000) { "Backup contains too many savings goals." }
         backup.expenses.forEach {
-            require(it.title.isNotBlank() && it.date.isNotBlank()) { "Backup contains an incomplete expense." }
-            require(it.amount.isFinite() && it.amount >= 0.0) { "Backup contains an invalid expense amount." }
+            require(it.title.length in 1..100) { "Backup contains an invalid expense title." }
+            require(it.amount.isFinite() && it.amount > 0.0 && it.amount <= 10_000_000.0) {
+                "Backup contains an invalid expense amount."
+            }
+            require(it.category.length in 1..50) { "Backup contains an invalid expense category." }
+            require(it.date.length in 8..10) { "Backup contains an invalid expense date." }
             require(it.type == "income" || it.type == "expense") { "Backup contains an unsupported expense type." }
-            require(it.id.isBlank() || !it.id.contains('/')) { "Backup contains an invalid expense ID." }
+            require(it.note.length <= 500) { "Backup contains an invalid expense note." }
+            require(it.id.isBlank() || isValidCloudDocumentId(it.id)) { "Backup contains an invalid expense ID." }
         }
         backup.savingsGoals.forEach {
-            require(it.title.isNotBlank()) { "Backup contains a savings goal without a name." }
-            require(it.targetAmount.isFinite() && it.targetAmount >= 0.0) { "Backup contains an invalid savings target." }
-            require(it.currentAmount.isFinite() && it.currentAmount >= 0.0) { "Backup contains an invalid saved amount." }
-            require(it.id.isBlank() || !it.id.contains('/')) { "Backup contains an invalid savings goal ID." }
+            require(it.title.length in 1..100) { "Backup contains an invalid savings goal title." }
+            require(it.targetAmount.isFinite() && it.targetAmount > 0.0 && it.targetAmount <= 10_000_000.0) {
+                "Backup contains an invalid savings target."
+            }
+            require(it.currentAmount.isFinite() && it.currentAmount >= 0.0 && it.currentAmount <= 10_000_000.0) {
+                "Backup contains an invalid saved amount."
+            }
+            require(it.targetDate.length <= 20) { "Backup contains an invalid savings goal date." }
+            require(it.category.length <= 50) { "Backup contains an invalid savings goal category." }
+            require(it.colorHex.length <= 10) { "Backup contains an invalid savings goal color." }
+            require(it.id.isBlank() || isValidCloudDocumentId(it.id)) { "Backup contains an invalid savings goal ID." }
         }
     }
+
+    private fun isValidCloudDocumentId(value: String): Boolean =
+        value.length in 1..64 && value.matches(Regex("^[a-zA-Z0-9_-]+$"))
 
     private fun expenseBackupKey(expense: Expense): String =
         listOf(
