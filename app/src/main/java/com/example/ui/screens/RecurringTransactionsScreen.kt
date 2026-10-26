@@ -58,10 +58,11 @@ import java.util.Locale
 @Composable
 fun RecurringTransactionsScreen(
     database: AppDatabase,
+    userId: String,
     modifier: Modifier = Modifier
 ) {
     val repository = remember(database) { FinanceRepository(database) }
-    val schedules by repository.observeRecurringSchedules().collectAsState(initial = emptyList())
+    val schedules by repository.observeRecurringSchedules(userId).collectAsState(initial = emptyList())
     val scope = rememberCoroutineScope()
     var showEditor by remember { mutableStateOf(false) }
     var description by remember { mutableStateOf("") }
@@ -167,7 +168,8 @@ fun RecurringTransactionsScreen(
                                     startDate = dueDate,
                                     nextDueDate = dueDate,
                                     frequency = frequency,
-                                    reminderDaysBefore = reminderDays.toIntOrNull() ?: 1
+                                    reminderDaysBefore = reminderDays.toIntOrNull() ?: 1,
+                                    userId = userId
                                 )
                                 database.recurringTransactionDao().insertOccurrenceIfNew(
                                     RecurringOccurrence(recurringId = id, dueDate = dueDate, amount = amount.toDouble())
