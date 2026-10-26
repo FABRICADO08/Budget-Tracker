@@ -80,6 +80,8 @@ fun BankCsvImportDialog(
             .filterNot { candidate ->
                 existingTransactions.any { existing ->
                     existing.date == candidate.date &&
+                        existing.type.equals(candidate.type, ignoreCase = true) &&
+                        existing.category.equals(candidate.category, ignoreCase = true) &&
                         kotlin.math.abs(existing.amount - candidate.amount) < 0.005 &&
                         existing.description.trim().equals(candidate.description.trim(), ignoreCase = true)
                 }
