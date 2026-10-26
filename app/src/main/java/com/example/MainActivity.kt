@@ -121,6 +121,8 @@ import androidx.credentials.CredentialManager
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.data.local.database.AppDatabase
+import com.example.data.local.repository.LegacyDataOwnershipRepository
+import com.example.data.local.repository.LegacyDataOwnershipStatus
 import com.example.data.local.entity.Loan
 import com.example.data.local.entity.Transaction
 import com.example.ui.auth.AuthScreen
@@ -201,7 +203,8 @@ class MainActivity : FragmentActivity() {
                         // User is authenticated and biometric passed: display application
                         val db = remember { AppDatabase.getInstance(context) }
                         val transactionViewModel: TransactionViewModel = viewModel(
-                            factory = TransactionViewModel.Factory(db.transactionDao(), db.loanDao())
+                            key = "transaction-viewmodel-${currentUser.uid}",
+                            factory = TransactionViewModel.Factory(db.transactionDao(), db.loanDao(), currentUser.uid)
                         )
                         val slipScannerViewModel: SlipScannerViewModel = viewModel()
                         val aiChatViewModel: AiChatViewModel = viewModel()
@@ -341,6 +344,19 @@ fun TransactionApp(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val credentialManager = remember { CredentialManager.create(context) }
+    val legacyOwnershipRepository = remember(database) { LegacyDataOwnershipRepository(database) }
+    var legacyDataStatus by remember(database, currentUser.uid) {
+        mutableStateOf<LegacyDataOwnershipStatus?>(null)
+    }
+    var legacyDecisionBusy by remember { mutableStateOf(false) }
+    var legacyDecisionError by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(database, currentUser.uid) {
+        legacyDataStatus = null
+        legacyDecisionError = null
+        val status = runCatching { legacyOwnershipRepository.getStatus() }.getOrNull()
+        if (status?.needsDecision == true) legacyDataStatus = status
+    }
 
     var selectedTab by remember { mutableIntStateOf(0) } // Expenses, Analytics, Loans, AI, Budgets, Recurring bills
     var aiPendingPrompt by remember { mutableStateOf<String?>(null) }
@@ -924,6 +940,7 @@ fun TransactionApp(
                     // Tab 2: Loans Given
                     LoansScreen(
                         database = database,
+                        userId = currentUser.uid,
                         loans = loans,
                         onRequestMarkRepaid = { loan -> loanToMarkRepaid = loan },
                         onRecordRepayment = { loan -> loanToRecordRepayment = loan },
@@ -1074,6 +1091,7 @@ fun TransactionApp(
         RecordLoanRepaymentDialog(
             database = database,
             loan = loanToRecordRepayment!!,
+            userId = currentUser.uid,
             onDismiss = { loanToRecordRepayment = null },
             onSaved = {
                 loanToRecordRepayment = null
@@ -1097,6 +1115,73 @@ fun TransactionApp(
                     onSignOutComplete = onSignOut,
                     scope = coroutineScope
                 )
+            }
+        )
+    }
+
+    legacyDataStatus?.let { status ->
+        AlertDialog(
+            onDismissRequest = { /* Make the ownership choice explicit before exposing local records. */ },
+            title = { Text("Existing local finance records") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        "This device has ${status.unownedTransactions} transaction(s) and ${status.unownedLoans} loan(s) " +
+                            "created before records were linked to an account."
+                    )
+                    Text(
+                        "Claim them only if they belong to the account signed in now. Once assigned, another account on this device won't see these records."
+                    )
+                    Text(
+                        "Choosing not to claim keeps these records stored on the device but hidden from signed-in accounts.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    legacyDecisionError?.let {
+                        Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                    }
+                    if (legacyDecisionBusy) CircularProgressIndicator()
+                }
+            },
+            confirmButton = {
+                Button(
+                    enabled = !legacyDecisionBusy,
+                    onClick = {
+                        coroutineScope.launch {
+                            legacyDecisionBusy = true
+                            legacyDecisionError = null
+                            runCatching {
+                                legacyOwnershipRepository.decide(currentUser.uid, claimRecords = true)
+                            }.onSuccess {
+                                legacyDataStatus = null
+                                Toast.makeText(context, "Existing records assigned to this account.", Toast.LENGTH_LONG).show()
+                            }.onFailure {
+                                legacyDecisionError = it.message ?: "Could not assign existing records."
+                            }
+                            legacyDecisionBusy = false
+                        }
+                    }
+                ) { Text("Claim for this account") }
+            },
+            dismissButton = {
+                TextButton(
+                    enabled = !legacyDecisionBusy,
+                    onClick = {
+                        coroutineScope.launch {
+                            legacyDecisionBusy = true
+                            legacyDecisionError = null
+                            runCatching {
+                                legacyOwnershipRepository.decide(currentUser.uid, claimRecords = false)
+                            }.onSuccess {
+                                legacyDataStatus = null
+                                Toast.makeText(context, "Existing records remain unassigned.", Toast.LENGTH_LONG).show()
+                            }.onFailure {
+                                legacyDecisionError = it.message ?: "Could not save your choice."
+                            }
+                            legacyDecisionBusy = false
+                        }
+                    }
+                ) { Text("Keep unassigned") }
             }
         )
     }
@@ -1720,6 +1805,7 @@ fun EditBudgetDialog(
 @Composable
 fun LoansScreen(
     database: AppDatabase,
+    userId: String,
     loans: List<Loan>,
     onRequestMarkRepaid: (Loan) -> Unit,
     onRecordRepayment: (Loan) -> Unit,
@@ -2017,7 +2103,7 @@ fun LoanListItem(
                 }
             }
 
-            LoanRepaymentBalance(database = database, loan = loan)
+            LoanRepaymentBalance(database = database, loan = loan, userId = userId)
 
             if (loan.note.isNotBlank()) {
                 Spacer(modifier = Modifier.height(8.dp))
@@ -2116,8 +2202,8 @@ fun LoanListItem(
 }
 
 @Composable
-private fun LoanRepaymentBalance(database: AppDatabase, loan: Loan) {
-    val paid by database.loanRepaymentDao().observeTotalForLoan(loan.id).collectAsState(initial = 0.0)
+private fun LoanRepaymentBalance(database: AppDatabase, loan: Loan, userId: String) {
+    val paid by database.loanRepaymentDao().observeTotalForLoan(loan.id, userId).collectAsState(initial = 0.0)
     val remaining = (loan.amount - paid).coerceAtLeast(0.0)
     Text(
         text = "Received R%.2f · Remaining R%.2f".format(paid, remaining),
