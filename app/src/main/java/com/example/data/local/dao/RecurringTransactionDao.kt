@@ -12,8 +12,8 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface RecurringTransactionDao {
-    @Query("SELECT * FROM recurring_transactions ORDER BY is_active DESC, next_due_date ASC")
-    fun observeAll(): Flow<List<RecurringTransaction>>
+    @Query("SELECT * FROM recurring_transactions WHERE user_id = :userId ORDER BY is_active DESC, next_due_date ASC")
+    fun observeAll(userId: String = ""): Flow<List<RecurringTransaction>>
 
     @Query("SELECT * FROM recurring_transactions WHERE is_active = 1 AND next_due_date <= :throughDate ORDER BY next_due_date")
     suspend fun dueThrough(throughDate: String): List<RecurringTransaction>
