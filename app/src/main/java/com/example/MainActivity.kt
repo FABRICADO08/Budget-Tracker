@@ -129,6 +129,7 @@ import com.example.ui.components.MonthlySpendingBarChart
 import com.example.ui.screens.AiChatScreen
 import com.example.ui.screens.ChartboardScreen
 import com.example.ui.screens.CategoryBudgetsScreen
+import com.example.ui.screens.RecurringTransactionsScreen
 import com.example.ui.theme.BudgetTrackerTheme
 import com.example.ui.theme.ExpenseRed
 import com.example.ui.theme.IncomeGreen
@@ -203,6 +204,7 @@ class MainActivity : FragmentActivity() {
                         val aiChatViewModel: AiChatViewModel = viewModel()
 
                         TransactionApp(
+                            database = db,
                             viewModel = transactionViewModel,
                             scannerViewModel = slipScannerViewModel,
                             aiChatViewModel = aiChatViewModel,
@@ -326,6 +328,7 @@ fun BiometricLockScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TransactionApp(
+    database: AppDatabase,
     viewModel: TransactionViewModel,
     scannerViewModel: SlipScannerViewModel,
     aiChatViewModel: AiChatViewModel,
@@ -336,7 +339,7 @@ fun TransactionApp(
     val coroutineScope = rememberCoroutineScope()
     val credentialManager = remember { CredentialManager.create(context) }
 
-    var selectedTab by remember { mutableIntStateOf(0) } // 0: Expenses, 1: Chartboard, 2: Loans, 3: AI Chatbot, 4: Category Budgets
+    var selectedTab by remember { mutableIntStateOf(0) } // Expenses, Analytics, Loans, AI, Budgets, Recurring bills
     var aiPendingPrompt by remember { mutableStateOf<String?>(null) }
     var showAddExpenseDialog by remember { mutableStateOf(false) }
     var showAddLoanDialog by remember { mutableStateOf(false) }
@@ -384,8 +387,13 @@ fun TransactionApp(
     }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground
+                ),
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
@@ -400,6 +408,7 @@ fun TransactionApp(
                                     1 -> Icons.Default.Insights
                                     2 -> Icons.Default.Handshake
                                     4 -> Icons.Default.AccountBalanceWallet
+                                    5 -> Icons.Default.CalendarMonth
                                     else -> Icons.Default.AutoAwesome
                                 },
                                 contentDescription = null,
@@ -415,6 +424,7 @@ fun TransactionApp(
                                     1 -> "Financial Chartboard"
                                     2 -> "Loans Given"
                                     4 -> "Category Budgets"
+                                    5 -> "Recurring Bills"
                                     else -> "Gemini AI Chatbot"
                                 },
                                 style = MaterialTheme.typography.titleLarge,
@@ -426,6 +436,7 @@ fun TransactionApp(
                                     1 -> "Monthly Spending Analytics"
                                     2 -> "Owed: R%.2f".format(totalPendingLoans)
                                     4 -> "Plan spending by category"
+                                    5 -> "Upcoming payments & income"
                                     else -> "Google Search Grounded"
                                 },
                                 style = MaterialTheme.typography.bodySmall,
@@ -505,7 +516,7 @@ fun TransactionApp(
             )
         },
         bottomBar = {
-            NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
+            NavigationBar(containerColor = MaterialTheme.colorScheme.surface, tonalElevation = 6.dp) {
                 NavigationBarItem(
                     selected = selectedTab == 0,
                     onClick = { selectedTab = 0 },
@@ -565,6 +576,13 @@ fun TransactionApp(
                     },
                     label = { Text("Budgets") },
                     modifier = Modifier.testTag("tab_category_budgets")
+                )
+                NavigationBarItem(
+                    selected = selectedTab == 5,
+                    onClick = { selectedTab = 5 },
+                    icon = { Icon(Icons.Default.CalendarMonth, contentDescription = "Recurring bills") },
+                    label = { Text("Bills") },
+                    modifier = Modifier.testTag("tab_recurring_bills")
                 )
             }
         },
@@ -884,8 +902,10 @@ fun TransactionApp(
                     )
                 }
                 4 -> {
-                    // Tab 4: Account-scoped monthly spending limits by category
-                    CategoryBudgetsScreen(transactions = transactions, userId = currentUser.uid)
+                    CategoryBudgetsScreen(database = database, transactions = transactions)
+                }
+                5 -> {
+                    RecurringTransactionsScreen(database = database)
                 }
             }
         }
