@@ -286,15 +286,28 @@ fun RecurringTransactionsScreen(
                         scope.launch {
                             try {
                                 val dao = database.recurringTransactionDao()
-                                val occurrence = dao.getOccurrence(schedule.id, schedule.nextDueDate)
+                                val occurrence = dao.getOccurrence(schedule.id, schedule.nextDueDate, userId)
                                 val occurrenceId = occurrence?.id ?: dao.insertOccurrenceIfNew(
                                     RecurringOccurrence(recurringId = schedule.id, dueDate = schedule.nextDueDate, amount = schedule.amount)
                                 )
-                                val actualOccurrence = if (occurrenceId > 0) occurrenceId else dao.getOccurrence(schedule.id, schedule.nextDueDate)?.id ?: 0L
-                                if (actualOccurrence > 0 && repository.markRecurringBillPaid(actualOccurrence)) {
+                                val actualOccurrence = if (occurrenceId > 0) occurrenceId else dao.getOccurrence(schedule.id, schedule.nextDueDate, userId)?.id ?: 0L
+                                if (actualOccurrence > 0 && repository.markRecurringBillPaid(actualOccurrence, userId)) {
                                     val next = RecurringDates.nextDueDate(schedule.nextDueDate, RecurringDates.Frequency.valueOf(schedule.frequency))
                                     val active = schedule.endDate == null || next <= schedule.endDate
-                                    dao.update(schedule.copy(nextDueDate = next, isActive = active))
+                                    dao.updateForUser(
+                                        id = schedule.id,
+                                        description = schedule.description,
+                                        amount = schedule.amount,
+                                        category = schedule.category,
+                                        type = schedule.type,
+                                        startDate = schedule.startDate,
+                                        nextDueDate = next,
+                                        frequency = schedule.frequency,
+                                        endDate = schedule.endDate,
+                                        reminderDaysBefore = schedule.reminderDaysBefore,
+                                        isActive = active,
+                                        userId = userId
+                                    )
                                     if (active) dao.insertOccurrenceIfNew(RecurringOccurrence(recurringId = schedule.id, dueDate = next, amount = schedule.amount))
                                 }
                             } finally {
@@ -302,7 +315,7 @@ fun RecurringTransactionsScreen(
                             }
                         }
                     },
-                    onDelete = { scope.launch { database.recurringTransactionDao().delete(schedule) } }
+                    onDelete = { scope.launch { database.recurringTransactionDao().deleteForUser(schedule.id, userId) } }
                 )
             }
         }
