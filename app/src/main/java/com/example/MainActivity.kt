@@ -74,6 +74,7 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -101,6 +102,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -1205,58 +1207,109 @@ fun MonthlyExpenditureSummary(
         monthTransactions.sumOf { it.amount }
     }
 
+    val currentDay = remember {
+        Calendar.getInstance().get(Calendar.DAY_OF_MONTH).coerceAtLeast(1)
+    }
+    val dailyAvg = if (currentDay > 0) totalExpenditure / currentDay else 0.0
+
     Card(
         modifier = modifier
             .fillMaxWidth()
             .testTag("monthly_expenditure_card"),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f)
-        ),
-        shape = RoundedCornerShape(18.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        shape = RoundedCornerShape(22.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        Row(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(18.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "TOTAL EXPENDITURE • ${currentMonthTitle.uppercase()}",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    letterSpacing = 1.sp
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            Color(0xFF064E3B), // Deep emerald
+                            Color(0xFF047857), // Forest emerald
+                            Color(0xFF0D9488)  // Modern teal
+                        )
+                    )
                 )
-                Spacer(modifier = Modifier.height(6.dp))
+                .padding(20.dp)
+        ) {
+            Column {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Surface(
+                        color = Color.White.copy(alpha = 0.18f),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text(
+                            text = currentMonthTitle.uppercase(),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            letterSpacing = 1.sp,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        )
+                    }
+
+                    Surface(
+                        color = Color.White.copy(alpha = 0.15f),
+                        shape = CircleShape
+                    ) {
+                        Box(
+                            modifier = Modifier.size(36.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CalendarMonth,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Text(
+                    text = "Total Expenditure",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.White.copy(alpha = 0.82f)
+                )
+                Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = "R%.2f".format(totalExpenditure),
-                    style = MaterialTheme.typography.displayMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    style = MaterialTheme.typography.displaySmall,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color.White
                 )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "${monthTransactions.size} expenses recorded this month",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
 
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .background(MaterialTheme.colorScheme.primary, CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.CalendarMonth,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.size(26.dp)
-                )
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Stats footer inside the card
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color.Black.copy(alpha = 0.22f), RoundedCornerShape(12.dp))
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "${monthTransactions.size} transactions recorded",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White.copy(alpha = 0.9f)
+                    )
+                    Text(
+                        text = "Avg R%.0f/day".format(dailyAvg),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF6EE7B7) // Mint accent
+                    )
+                }
             }
         }
     }
@@ -1342,6 +1395,37 @@ fun LoansScreen(
                         }
                     }
                 }
+
+                val totalLoanedAll = pendingTotal + repaidTotal
+                val recoveryRate = if (totalLoanedAll > 0) (repaidTotal / totalLoanedAll).toFloat() else 0f
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Recovery Rate",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "%.0f%%".format(recoveryRate * 100),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = IncomeGreen
+                    )
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                LinearProgressIndicator(
+                    progress = { recoveryRate.coerceIn(0f, 1f) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(6.dp)
+                        .clip(RoundedCornerShape(3.dp)),
+                    color = IncomeGreen,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant
+                )
 
                 Spacer(modifier = Modifier.height(14.dp))
 
@@ -2025,30 +2109,34 @@ fun TransactionListItem(
     transaction: Transaction,
     onDelete: () -> Unit
 ) {
+    val categoryColor = remember(transaction.category) {
+        getCategoryColor(transaction.category)
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .testTag("transaction_item_${transaction.id}"),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(14.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp),
+                .padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
                     .size(44.dp)
-                    .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
+                    .background(categoryColor.copy(alpha = 0.14f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = getTransactionIcon(transaction.category),
                     contentDescription = transaction.category,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = categoryColor,
                     modifier = Modifier.size(22.dp)
                 )
             }
@@ -2063,16 +2151,23 @@ fun TransactionListItem(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Spacer(modifier = Modifier.height(2.dp))
+                Spacer(modifier = Modifier.height(3.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    Surface(
+                        color = categoryColor.copy(alpha = 0.12f),
+                        shape = RoundedCornerShape(6.dp)
+                    ) {
+                        Text(
+                            text = transaction.category,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = categoryColor,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = transaction.category,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Text(
-                        text = " • ${transaction.date}",
+                        text = transaction.date,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline
                     )
@@ -2082,23 +2177,30 @@ fun TransactionListItem(
             Spacer(modifier = Modifier.width(8.dp))
 
             Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    text = "R%.2f".format(transaction.amount),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = ExpenseRed
-                )
+                Surface(
+                    color = if (transaction.type == "expense") ExpenseRed.copy(alpha = 0.1f) else IncomeGreen.copy(alpha = 0.1f),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        text = "%sR%.2f".format(if (transaction.type == "expense") "-" else "+", transaction.amount),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (transaction.type == "expense") ExpenseRed else IncomeGreen,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.height(2.dp))
                 IconButton(
                     onClick = onDelete,
                     modifier = Modifier
-                        .size(32.dp)
+                        .size(28.dp)
                         .testTag("delete_transaction_${transaction.id}")
                 ) {
                     Icon(
                         imageVector = Icons.Default.Delete,
                         contentDescription = "Delete Transaction",
-                        tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f),
-                        modifier = Modifier.size(18.dp)
+                        tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                        modifier = Modifier.size(16.dp)
                     )
                 }
             }
@@ -2113,28 +2215,44 @@ fun EmptyTransactionsView(
 ) {
     Box(
         modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
+            .fillMaxWidth()
+            .padding(vertical = 12.dp),
         contentAlignment = Alignment.Center
     ) {
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
-            shape = RoundedCornerShape(20.dp)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            shape = RoundedCornerShape(22.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(32.dp),
+                    .padding(28.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ReceiptLong,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.outline,
-                    modifier = Modifier.size(56.dp)
-                )
-                Spacer(modifier = Modifier.height(14.dp))
+                Box(
+                    modifier = Modifier
+                        .size(68.dp)
+                        .background(
+                            Brush.linearGradient(
+                                listOf(
+                                    MaterialTheme.colorScheme.primaryContainer,
+                                    MaterialTheme.colorScheme.surfaceVariant
+                                )
+                            ),
+                            CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ReceiptLong,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(34.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     text = "No Expenses Yet",
                     style = MaterialTheme.typography.titleMedium,
@@ -2142,7 +2260,7 @@ fun EmptyTransactionsView(
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = "Scan a till slip with AI or tap below to manually add your first expense.",
+                    text = "Scan a till slip with Gemini AI or manually record your first expenditure.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
@@ -2184,8 +2302,9 @@ fun NoSearchResultsView(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
-        shape = RoundedCornerShape(18.dp)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
             modifier = Modifier
@@ -2193,13 +2312,20 @@ fun NoSearchResultsView(
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Icon(
-                imageVector = Icons.Default.Search,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.outline,
-                modifier = Modifier.size(42.dp)
-            )
-            Spacer(modifier = Modifier.height(10.dp))
+            Box(
+                modifier = Modifier
+                    .size(52.dp)
+                    .background(MaterialTheme.colorScheme.surfaceVariant, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.outline,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(12.dp))
             Text(
                 text = "No results for \"$query\"",
                 style = MaterialTheme.typography.titleMedium,
@@ -2213,7 +2339,7 @@ fun NoSearchResultsView(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(16.dp))
             OutlinedButton(
                 onClick = onClear,
                 shape = RoundedCornerShape(20.dp)
@@ -2224,15 +2350,28 @@ fun NoSearchResultsView(
     }
 }
 
+fun getCategoryColor(category: String): Color {
+    return when (category.lowercase(Locale.getDefault())) {
+        "food & dining", "food" -> Color(0xFFEA580C)
+        "groceries" -> Color(0xFF16A34A)
+        "transportation", "transport" -> Color(0xFF0284C7)
+        "bills", "bills & utilities", "utilities" -> Color(0xFFE11D48)
+        "shopping" -> Color(0xFF9333EA)
+        "entertainment" -> Color(0xFFD97706)
+        "health", "fitness" -> Color(0xFF0D9488)
+        else -> Color(0xFF64748B)
+    }
+}
+
 fun getTransactionIcon(category: String): ImageVector {
-    return when (category) {
-        "Food & Dining" -> Icons.Default.Fastfood
-        "Transportation" -> Icons.Default.DirectionsCar
-        "Groceries" -> Icons.Default.ShoppingCart
-        "Bills" -> Icons.Default.Receipt
-        "Shopping" -> Icons.Default.LocalAtm
-        "Entertainment" -> Icons.Default.Movie
-        "Health" -> Icons.Default.FitnessCenter
+    return when (category.lowercase(Locale.getDefault())) {
+        "food & dining", "food" -> Icons.Default.Fastfood
+        "transportation", "transport" -> Icons.Default.DirectionsCar
+        "groceries" -> Icons.Default.ShoppingCart
+        "bills", "bills & utilities", "utilities" -> Icons.Default.Receipt
+        "shopping" -> Icons.Default.LocalAtm
+        "entertainment" -> Icons.Default.Movie
+        "health", "fitness" -> Icons.Default.FitnessCenter
         else -> Icons.Default.HomeRepairService
     }
 }
