@@ -74,6 +74,7 @@ fun CategoryBudgetsScreen(
     var month by remember { mutableStateOf(defaultMonth) }
     var showEditor by remember { mutableStateOf(false) }
     var editingBudget by remember { mutableStateOf<CategoryBudget?>(null) }
+    var budgetToDelete by remember { mutableStateOf<CategoryBudget?>(null) }
     var loadError by remember { mutableStateOf<String?>(null) }
     var carryoverAmounts by remember { mutableStateOf<Map<Long, Double>>(emptyMap()) }
     val scope = rememberCoroutineScope()
@@ -200,12 +201,7 @@ fun CategoryBudgetsScreen(
                                     IconButton(onClick = { editingBudget = budget; showEditor = true }) {
                                         Icon(Icons.Default.Edit, contentDescription = "Edit ${budget.category} budget")
                                     }
-                                    IconButton(onClick = {
-                                        scope.launch {
-                                            runCatching { repository.deleteBudget(userId, budget) }
-                                                .onFailure { loadError = it.message ?: "Could not delete budget." }
-                                        }
-                                    }) {
+                                    IconButton(onClick = { budgetToDelete = budget }) {
                                         Icon(Icons.Default.Delete, contentDescription = "Delete ${budget.category} budget")
                                     }
                                 }
@@ -257,6 +253,24 @@ fun CategoryBudgetsScreen(
                 }
             }
         }
+    }
+
+    budgetToDelete?.let { budget ->
+        AlertDialog(
+            onDismissRequest = { budgetToDelete = null },
+            title = { Text("Delete ${budget.category} budget?") },
+            text = { Text("This removes the saved monthly limit and its associated threshold history. Your transactions are not changed.") },
+            confirmButton = {
+                Button(onClick = {
+                    scope.launch {
+                        runCatching { repository.deleteBudget(userId, budget) }
+                            .onFailure { loadError = it.message ?: "Could not delete budget." }
+                        budgetToDelete = null
+                    }
+                }) { Text("Delete budget") }
+            },
+            dismissButton = { TextButton(onClick = { budgetToDelete = null }) { Text("Cancel") } }
+        )
     }
 
     if (showEditor) {
