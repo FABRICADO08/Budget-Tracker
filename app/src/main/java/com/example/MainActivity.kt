@@ -128,6 +128,7 @@ import com.example.ui.auth.signOut
 import com.example.ui.components.MonthlySpendingBarChart
 import com.example.ui.screens.AiChatScreen
 import com.example.ui.screens.ChartboardScreen
+import com.example.ui.screens.BankCsvImportDialog
 import com.example.ui.screens.CategoryBudgetsScreen
 import com.example.ui.screens.RecurringTransactionsScreen
 import com.example.ui.theme.BudgetTrackerTheme
@@ -342,6 +343,8 @@ fun TransactionApp(
     var selectedTab by remember { mutableIntStateOf(0) } // Expenses, Analytics, Loans, AI, Budgets, Recurring bills
     var aiPendingPrompt by remember { mutableStateOf<String?>(null) }
     var showAddExpenseDialog by remember { mutableStateOf(false) }
+    var showCsvImportDialog by remember { mutableStateOf(false) }
+    var csvImportText by remember { mutableStateOf("") }
     var showAddLoanDialog by remember { mutableStateOf(false) }
     var showProfileSecurityDialog by remember { mutableStateOf(false) }
     var loanToMarkRepaid by remember { mutableStateOf<Loan?>(null) }
@@ -374,6 +377,19 @@ fun TransactionApp(
     ) { uri ->
         if (uri != null) {
             scannerViewModel.scanSlipImage(context, uri)
+        }
+    }
+
+    val csvImportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri != null) {
+            runCatching { context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() } }
+                .onSuccess { content ->
+                    if (content.isNullOrBlank()) Toast.makeText(context, "The selected file is empty.", Toast.LENGTH_LONG).show()
+                    else { csvImportText = content; showCsvImportDialog = true }
+                }
+                .onFailure { error -> Toast.makeText(context, error.message ?: "Could not read this CSV file.", Toast.LENGTH_LONG).show() }
         }
     }
 
@@ -459,6 +475,12 @@ fun TransactionApp(
                     }
 
                     if (selectedTab == 0) {
+                        IconButton(
+                            onClick = { csvImportLauncher.launch("text/*") },
+                            modifier = Modifier.testTag("import_bank_csv_button")
+                        ) {
+                            Icon(Icons.Default.Receipt, contentDescription = "Import bank statement", tint = MaterialTheme.colorScheme.primary)
+                        }
                         IconButton(
                             onClick = {
                                 photoPickerLauncher.launch(
@@ -962,6 +984,19 @@ fun TransactionApp(
                 Button(onClick = { scannerViewModel.resetState() }) {
                     Text("OK")
                 }
+            }
+        )
+    }
+
+    if (showCsvImportDialog) {
+        BankCsvImportDialog(
+            csvText = csvImportText,
+            existingTransactions = transactions,
+            onDismiss = { showCsvImportDialog = false },
+            onImport = { imported ->
+                imported.forEach { viewModel.insert(it) }
+                Toast.makeText(context, "Queued ${imported.size} new transactions for import.", Toast.LENGTH_LONG).show()
+                showCsvImportDialog = false
             }
         )
     }
