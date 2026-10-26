@@ -71,6 +71,7 @@ fun BackupRestoreDialog(
 @Composable
 fun BackupRestoreConfirmationDialog(
     preview: FinanceBackupPreview,
+    currentUserId: String,
     mode: BackupRestoreMode,
     busy: Boolean,
     error: String?,
@@ -87,6 +88,14 @@ fun BackupRestoreConfirmationDialog(
             Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
                 Text("Created: $date")
                 Text("Backup source account: ${preview.sourceUserId}", style = MaterialTheme.typography.bodySmall)
+                Text("Restore target account: $currentUserId", style = MaterialTheme.typography.bodySmall)
+                if (preview.sourceUserId != currentUserId) {
+                    Text(
+                        "This file comes from a different account. Restoring copies its backup data into the signed-in account shown above; it does not change the source account.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.tertiary
+                    )
+                }
                 Text(
                     "Records in file: ${preview.transactionCount} transactions, ${preview.loanCount} loans, " +
                         "${preview.budgetCount} category budgets, ${preview.budgetAlertCount} budget alerts, " +
