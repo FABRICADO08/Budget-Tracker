@@ -352,7 +352,8 @@ class FinanceBackupManager(
                 it.loanId == newLoanId &&
                     it.amount == source.amount &&
                     it.paidDate == source.paidDate &&
-                    it.note == source.note
+                    it.note == source.note &&
+                    it.createdAt == source.createdAt
             }
             if (!duplicate) {
                 val saved = source.copy(id = 0L, loanId = newLoanId)
@@ -388,8 +389,12 @@ class FinanceBackupManager(
         listOf(value.category.trim(), value.month).joinToString("|")
 
     private fun scheduleKey(value: RecurringTransaction): String =
-        listOf(value.description.trim().lowercase(Locale.ROOT), value.amount.toString(), value.category.trim().lowercase(Locale.ROOT), value.type, value.frequency, value.startDate)
-            .joinToString("|")
+        listOf(
+            value.description.trim().lowercase(Locale.ROOT), value.amount.toString(),
+            value.category.trim().lowercase(Locale.ROOT), value.type, value.frequency,
+            value.startDate, value.nextDueDate, value.endDate.orEmpty(),
+            value.reminderDaysBefore.toString(), value.isActive.toString(), value.createdAt.toString()
+        ).joinToString("|")
 
     private fun localToJson(value: LocalBackupData): JSONObject = JSONObject()
         .put("transactions", JSONArray().apply { value.transactions.forEach { put(transactionToJson(it)) } })
@@ -512,6 +517,10 @@ class FinanceBackupManager(
         val scheduleIds = local.recurringSchedules.map { it.id }.toSet()
         require(local.recurringOccurrences.all { it.recurringId in scheduleIds }) {
             "Backup contains an occurrence without its recurring schedule."
+        }
+        val transactionIds = local.transactions.map { it.id }.toSet()
+        require(local.recurringOccurrences.all { it.transactionId == null || it.transactionId in transactionIds }) {
+            "Backup contains an occurrence linked to a missing transaction."
         }
 
         val cloudJson = root.getJSONObject("cloud")
