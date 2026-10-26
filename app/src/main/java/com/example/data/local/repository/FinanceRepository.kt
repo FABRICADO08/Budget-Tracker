@@ -22,9 +22,10 @@ class FinanceRepository(private val database: AppDatabase) {
     private val loans = database.loanDao()
     private val transactions = database.transactionDao()
 
-    fun observeBudgets(month: String): Flow<List<CategoryBudget>> = budgets.observeForMonth(month)
+    fun observeBudgets(userId: String, month: String): Flow<List<CategoryBudget>> = budgets.observeForMonth(userId, month)
 
     suspend fun saveBudget(budget: CategoryBudget): Long {
+        require(budget.userId.isNotBlank()) { "A signed-in user is required to save a budget." }
         require(budget.category.isNotBlank()) { "Choose a category." }
         require(budget.month.matches(Regex("\\d{4}-\\d{2}"))) { "Month must use yyyy-MM." }
         require(budget.limitAmount.isFinite() && budget.limitAmount > 0.0) { "Budget must be greater than zero." }
