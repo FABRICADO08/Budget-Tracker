@@ -158,6 +158,16 @@ Tests verify:
 
 ## Category Budget Planner
 
-The **Budgets** tab lets a signed-in user set a monthly spending limit for common categories and categories already present in their transactions. It calculates current-month expense totals from local Room transactions, displays progress bars and remaining amounts, and flags categories that exceed their limits. Category limits are saved locally under the signed-in Firebase UID, so separate accounts on the same device have separate category-budget preferences.
+The **Budgets** tab lets a signed-in user set monthly spending limits per category, view actual expenses and remaining amounts, pause limits, and carry forward unused budget amounts. Category budgets are stored in Room and scoped to the signed-in Firebase UID. On first opening the upgraded screen, prior account-scoped SharedPreferences limits are copied into the current month's Room records without deleting the old preferences.
 
-Monthly and category limits use decimal-string storage to preserve cents. The feature does not alter existing transactions or the Room schema, so it requires no database migration.
+
+## Finance upgrade branch
+
+The `upgrade/phase2-financial-core-latest` branch adds an explicit Room v2→v3 migration and persisted models for category budgets, recurring schedules/occurrences, budget threshold alerts, and loan repayments. Legacy paid-in-full loans are represented in the repayment history during migration. It also adds reusable budget and recurrence calculations, a CSV parsing foundation, and tests for the migration and core rules.
+
+The recurring-schedule UI and WorkManager reminders, full CSV file-picker/column-mapping/review workflow, backup/restore, integer-minor-unit migration for existing transaction/loan amounts, and complete user-data isolation for legacy transaction/loan records remain outstanding. Android tests/build have not been executed in this environment. Before merging, run:
+
+```bash
+gradle :app:testDebugUnitTest
+gradle :app:assembleDebug
+```
