@@ -72,6 +72,7 @@ class FinanceRepository(private val database: AppDatabase) {
         reminderDaysBefore: Int = 1,
         userId: String = ""
     ): Long {
+        require(userId.isNotBlank()) { "A signed-in user is required." }
         require(description.isNotBlank()) { "Description is required." }
         require(amount.isFinite() && amount > 0.0) { "Amount must be greater than zero." }
         require(category.isNotBlank()) { "Category is required." }
