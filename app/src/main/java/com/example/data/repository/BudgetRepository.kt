@@ -424,11 +424,16 @@ class BudgetRepository(private val db: FirebaseFirestore) {
     }
 
     private fun expenseBackupKey(expense: Expense): String =
-        listOf(expense.date, expense.amount.toString(), expense.type, expense.category.trim().lowercase(), expense.title.trim().lowercase(), expense.note.trim().lowercase())
-            .joinToString("|")
+        listOf(
+            expense.date, expense.amount.toString(), expense.type, expense.category.trim().lowercase(),
+            expense.title.trim().lowercase(), expense.note.trim().lowercase(),
+            expense.createdAt?.toDate()?.time?.toString().orEmpty()
+        ).joinToString("|")
 
     private fun goalBackupKey(goal: SavingsGoal): String =
-        listOf(goal.title.trim().lowercase(), goal.targetAmount.toString(), goal.targetDate, goal.category.trim().lowercase())
-            .joinToString("|")
+        listOf(
+            goal.title.trim().lowercase(), goal.targetAmount.toString(), goal.targetDate,
+            goal.category.trim().lowercase(), goal.createdAt?.toDate()?.time?.toString().orEmpty()
+        ).joinToString("|")
 
 }
