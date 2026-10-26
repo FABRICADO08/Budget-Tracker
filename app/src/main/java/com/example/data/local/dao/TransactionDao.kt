@@ -22,30 +22,20 @@ interface TransactionDao {
     // ==========================================
 
     /**
-     * Inserts a single transaction into the database.
-     * Uses [OnConflictStrategy.REPLACE] so existing rows with matching primary keys are updated.
+     * Inserts a transaction without silently replacing an existing record on ID conflict.
      *
      * @param transaction The [Transaction] to insert.
      * @return The SQLite row ID of the inserted transaction.
      */
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(transaction: Transaction): Long
-
-    /**
-     * Inserts a single transaction into the database.
-     *
-     * @param transaction The [Transaction] to insert.
-     * @return The SQLite row ID of the inserted transaction.
-     */
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertTransaction(transaction: Transaction): Long
 
     /**
      * Inserts a list of transactions in a single batch operation.
      *
      * @param transactions The list of [Transaction]s to insert.
      */
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertAll(transactions: List<Transaction>)
 
     // ==========================================
@@ -126,14 +116,6 @@ interface TransactionDao {
     @Update
     suspend fun update(transaction: Transaction)
 
-    /**
-     * Updates an existing transaction entity in the database.
-     *
-     * @param transaction The [Transaction] containing updated fields.
-     */
-    @Update
-    suspend fun updateTransaction(transaction: Transaction)
-
     // ==========================================
     // DELETE OPERATIONS
     // ==========================================
@@ -145,14 +127,6 @@ interface TransactionDao {
      */
     @Delete
     suspend fun delete(transaction: Transaction)
-
-    /**
-     * Deletes a specific transaction from the database.
-     *
-     * @param transaction The [Transaction] entity to delete.
-     */
-    @Delete
-    suspend fun deleteTransaction(transaction: Transaction)
 
     /**
      * Deletes a transaction by its primary key [id].
