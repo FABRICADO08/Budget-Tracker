@@ -164,4 +164,37 @@ class FinanceRoomTest {
             context.deleteDatabase(name)
         }
     }
+
+    @Test
+    fun reminderCandidatesAreScopedToUser() = runBlocking {
+        val dao = database.recurringTransactionDao()
+        dao.insert(
+            RecurringTransaction(
+                userId = "account-a",
+                description = "Rent",
+                amount = 8000.0,
+                category = "Housing",
+                type = "expense",
+                startDate = "2026-10-01",
+                nextDueDate = "2026-11-01",
+                frequency = "MONTHLY"
+            )
+        )
+        dao.insert(
+            RecurringTransaction(
+                userId = "account-b",
+                description = "Insurance",
+                amount = 1200.0,
+                category = "Bills & Utilities",
+                type = "expense",
+                startDate = "2026-10-01",
+                nextDueDate = "2026-11-05",
+                frequency = "MONTHLY"
+            )
+        )
+
+        assertEquals(listOf("Rent"), dao.getActiveForUser("account-a").map { it.description })
+        assertTrue(dao.getActiveForUser("unknown-account").isEmpty())
+    }
+
 }
