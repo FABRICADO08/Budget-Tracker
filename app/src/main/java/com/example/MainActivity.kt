@@ -540,9 +540,6 @@ fun TransactionApp(
                         }
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
             )
         },
         bottomBar = {
