@@ -128,6 +128,7 @@ import com.example.ui.auth.signOut
 import com.example.ui.components.MonthlySpendingBarChart
 import com.example.ui.screens.AiChatScreen
 import com.example.ui.screens.ChartboardScreen
+import com.example.ui.screens.CategoryBudgetsScreen
 import com.example.ui.theme.BudgetTrackerTheme
 import com.example.ui.theme.ExpenseRed
 import com.example.ui.theme.IncomeGreen
@@ -335,7 +336,7 @@ fun TransactionApp(
     val coroutineScope = rememberCoroutineScope()
     val credentialManager = remember { CredentialManager.create(context) }
 
-    var selectedTab by remember { mutableIntStateOf(0) } // 0: Expenses, 1: Chartboard, 2: Loans, 3: AI Chatbot
+    var selectedTab by remember { mutableIntStateOf(0) } // 0: Expenses, 1: Chartboard, 2: Loans, 3: AI Chatbot, 4: Category Budgets
     var aiPendingPrompt by remember { mutableStateOf<String?>(null) }
     var showAddExpenseDialog by remember { mutableStateOf(false) }
     var showAddLoanDialog by remember { mutableStateOf(false) }
@@ -398,6 +399,7 @@ fun TransactionApp(
                                     0 -> Icons.Default.AccountBalanceWallet
                                     1 -> Icons.Default.Insights
                                     2 -> Icons.Default.Handshake
+                                    4 -> Icons.Default.AccountBalanceWallet
                                     else -> Icons.Default.AutoAwesome
                                 },
                                 contentDescription = null,
@@ -412,6 +414,7 @@ fun TransactionApp(
                                     0 -> "Expense Tracker"
                                     1 -> "Financial Chartboard"
                                     2 -> "Loans Given"
+                                    4 -> "Category Budgets"
                                     else -> "Gemini AI Chatbot"
                                 },
                                 style = MaterialTheme.typography.titleLarge,
@@ -422,6 +425,7 @@ fun TransactionApp(
                                     0 -> "Total: R%.2f".format(totalExpense)
                                     1 -> "Monthly Spending Analytics"
                                     2 -> "Owed: R%.2f".format(totalPendingLoans)
+                                    4 -> "Plan spending by category"
                                     else -> "Google Search Grounded"
                                 },
                                 style = MaterialTheme.typography.bodySmall,
@@ -550,6 +554,18 @@ fun TransactionApp(
                     label = { Text("AI Chatbot") },
                     modifier = Modifier.testTag("tab_ai_advisor")
                 )
+                NavigationBarItem(
+                    selected = selectedTab == 4,
+                    onClick = { selectedTab = 4 },
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Default.AccountBalanceWallet,
+                            contentDescription = "Category Budgets"
+                        )
+                    },
+                    label = { Text("Budgets") },
+                    modifier = Modifier.testTag("tab_category_budgets")
+                )
             }
         },
         floatingActionButton = {
@@ -602,7 +618,7 @@ fun TransactionApp(
                     ) {
                         // 1. Current Month Total Card
                         item {
-                            MonthlyExpenditureSummary(viewModel = viewModel)
+                            MonthlyExpenditureSummary(viewModel = viewModel, userId = currentUser.uid)
                         }
 
                         // 2. Dynamic Monthly Spending Bar Chart
@@ -866,6 +882,10 @@ fun TransactionApp(
                         initialPrompt = aiPendingPrompt,
                         onPromptConsumed = { aiPendingPrompt = null }
                     )
+                }
+                4 -> {
+                    // Tab 4: Account-scoped monthly spending limits by category
+                    CategoryBudgetsScreen(transactions = transactions, userId = currentUser.uid)
                 }
             }
         }
@@ -1277,14 +1297,15 @@ fun ProfileSecurityDialog(
 @Composable
 fun MonthlyExpenditureSummary(
     viewModel: TransactionViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    userId: String? = null
 ) {
     val context = LocalContext.current
     val transactions by viewModel.transactions.collectAsState()
     val loans by viewModel.loans.collectAsState()
 
-    var monthlyBudget by remember {
-        mutableStateOf(BudgetPreferences.getMonthlyBudgetCap(context))
+    var monthlyBudget by remember(userId) {
+        mutableStateOf(if (userId.isNullOrBlank()) BudgetPreferences.getMonthlyBudgetCap(context) else BudgetPreferences.getMonthlyBudgetCap(context, userId))
     }
     var showEditBudgetDialog by remember { mutableStateOf(false) }
 
@@ -1317,7 +1338,8 @@ fun MonthlyExpenditureSummary(
             currentBudget = monthlyBudget,
             onDismiss = { showEditBudgetDialog = false },
             onConfirm = { newBudget ->
-                BudgetPreferences.setMonthlyBudgetCap(context, newBudget)
+                if (userId.isNullOrBlank()) BudgetPreferences.setMonthlyBudgetCap(context, newBudget)
+                else BudgetPreferences.setMonthlyBudgetCap(context, userId, newBudget)
                 monthlyBudget = newBudget
                 showEditBudgetDialog = false
             }

@@ -154,3 +154,10 @@ Tests verify:
 - Room Database CRUD operations (`insert`, `update`, `delete`, `query`, `deleteById`)
 - Loan creation, repayment tracking, and date logging
 - ViewModel reactive flow emissions
+
+
+## Category Budget Planner
+
+The **Budgets** tab lets a signed-in user set a monthly spending limit for common categories and categories already present in their transactions. It calculates current-month expense totals from local Room transactions, displays progress bars and remaining amounts, and flags categories that exceed their limits. Category limits are saved locally under the signed-in Firebase UID, so separate accounts on the same device have separate category-budget preferences.
+
+Monthly and category limits use decimal-string storage to preserve cents. The feature does not alter existing transactions or the Room schema, so it requires no database migration.
