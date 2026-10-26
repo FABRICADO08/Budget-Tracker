@@ -175,7 +175,7 @@ fun CategoryBudgetsScreen(
                                     Column(Modifier.weight(1f)) {
                                         Text(budget.category, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
                                         Text(
-                                            if (budget.isPaused) "Paused" else "${money.format(spent)} spent of ${money.format(budget.limitAmount)}",
+                                            if (budget.isPaused) "Paused" else "${money.format(spent)} spent of ${money.format(effectiveLimit)}",
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             style = MaterialTheme.typography.bodySmall
                                         )
@@ -229,7 +229,7 @@ fun CategoryBudgetsScreen(
                                 val crossed = BudgetRules.crossedThresholds(effectiveLimit, spent)
                                 if (!budget.isPaused && crossed.isNotEmpty()) {
                                     Text(
-                                        "Threshold reached: ${crossed.joinToString("%, ")}%",
+                                        "Threshold reached: ${crossed.joinToString(", ") { "$it%" }}%",
                                         color = MaterialTheme.colorScheme.error,
                                         fontSize = 12.sp
                                     )
