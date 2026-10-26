@@ -51,7 +51,7 @@ class TransactionRoomTest {
         val id = transactionDao.insert(transaction)
         assertTrue(id > 0)
 
-        val retrieved = transactionDao.getTransactionById(id)
+        val retrieved = transactionDao.getTransactionById(id, "")
         assertNotNull(retrieved)
         assertEquals(42.50, retrieved!!.amount, 0.001)
         assertEquals("Groceries", retrieved.category)
@@ -59,7 +59,7 @@ class TransactionRoomTest {
         assertEquals("Supermarket run for weekly vegetables", retrieved.description)
         assertEquals("expense", retrieved.type)
 
-        val list = transactionDao.getAllTransactions().first()
+        val list = transactionDao.getAllTransactions("").first()
         assertEquals(1, list.size)
         assertEquals(id, list[0].id)
     }
@@ -73,13 +73,13 @@ class TransactionRoomTest {
             description = "Electricity bill"
         )
         val id = transactionDao.insert(transaction)
-        val inserted = transactionDao.getTransactionById(id)
+        val inserted = transactionDao.getTransactionById(id, "")
         assertNotNull(inserted)
 
         val updated = inserted!!.copy(amount = 180.00, description = "Electricity & Water bill")
-        transactionDao.update(updated)
+        transactionDao.updateForUser(updated.id, updated.amount, updated.category, updated.date, updated.description, updated.type, "")
 
-        val retrieved = transactionDao.getTransactionById(id)
+        val retrieved = transactionDao.getTransactionById(id, "")
         assertNotNull(retrieved)
         assertEquals(180.00, retrieved!!.amount, 0.001)
         assertEquals("Electricity & Water bill", retrieved.description)
@@ -94,12 +94,12 @@ class TransactionRoomTest {
             description = "Subway ticket"
         )
         val id = transactionDao.insert(transaction)
-        val inserted = transactionDao.getTransactionById(id)
+        val inserted = transactionDao.getTransactionById(id, "")
         assertNotNull(inserted)
 
-        transactionDao.delete(inserted!!)
+        transactionDao.deleteById(inserted!!.id, "")
 
-        val list = transactionDao.getAllTransactions().first()
+        val list = transactionDao.getAllTransactions("").first()
         assertTrue(list.isEmpty())
     }
 
@@ -111,20 +111,37 @@ class TransactionRoomTest {
 
         transactionDao.insertAll(listOf(tx1, tx2, tx3))
 
-        val foodList = transactionDao.getTransactionsByCategory("Food").first()
+        val foodList = transactionDao.getTransactionsByCategory("Food", "").first()
         assertEquals(2, foodList.size)
 
-        val dateList = transactionDao.getTransactionsByDate("2026-10-20").first()
+        val dateList = transactionDao.getTransactionsByDate("2026-10-20", "").first()
         assertEquals(2, dateList.size)
 
         val firstFoodId = foodList[0].id
-        transactionDao.deleteById(firstFoodId)
+        transactionDao.deleteById(firstFoodId, "")
 
-        val afterDelete = transactionDao.getTransactionById(firstFoodId)
+        val afterDelete = transactionDao.getTransactionById(firstFoodId, "")
         assertNull(afterDelete)
 
-        transactionDao.deleteAll()
-        val allAfterClear = transactionDao.getAllTransactions().first()
+        transactionDao.deleteAll("")
+        val allAfterClear = transactionDao.getAllTransactions("").first()
         assertTrue(allAfterClear.isEmpty())
     }
+    @Test
+    fun transactionReadsAndMutationsAreScopedToOwner() = runBlocking {
+        val ownId = transactionDao.insert(
+            Transaction(amount = 20.0, category = "Food", date = "2026-10-25", description = "Owner A", userId = "account-a")
+        )
+        val otherId = transactionDao.insert(
+            Transaction(amount = 99.0, category = "Shopping", date = "2026-10-25", description = "Owner B", userId = "account-b")
+        )
+
+        assertEquals(listOf("Owner A"), transactionDao.getAllTransactions("account-a").first().map { it.description })
+        assertNull(transactionDao.getTransactionById(otherId, "account-a"))
+        assertEquals(0, transactionDao.updateForUser(otherId, 1.0, "Hack", "2026-10-26", "Not mine", "expense", "account-a"))
+        assertEquals(0, transactionDao.deleteById(otherId, "account-a"))
+        assertEquals("Owner B", transactionDao.getTransactionById(otherId, "account-b")!!.description)
+        assertEquals(ownId, transactionDao.getTransactionById(ownId, "account-a")!!.id)
+    }
+
 }
