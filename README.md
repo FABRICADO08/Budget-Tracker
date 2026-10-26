@@ -154,3 +154,32 @@ Tests verify:
 - Room Database CRUD operations (`insert`, `update`, `delete`, `query`, `deleteById`)
 - Loan creation, repayment tracking, and date logging
 - ViewModel reactive flow emissions
+
+---
+
+## Upgrade work in progress: persisted finance features
+
+The `upgrade/phase2-financial-core` branch builds on the reliability fixes already merged to `main`.
+
+### Added in this branch
+- Room schema version 3 with an explicit `MIGRATION_2_3`; existing transactions and loans are retained.
+- Category budgets stored by category and month, with pause/edit/delete support in the Budgets navigation screen.
+- Persistent threshold records for 70%, 90% and 100% budget levels; unique database indexes prevent duplicate records for the same budget/month/threshold.
+- Optional unused-budget carry-forward based on the prior month's saved budget and recorded expenses.
+- Recurring schedule and occurrence tables. A unique schedule/date index prevents the same occurrence being inserted twice.
+- Loan repayment history stored separately from original loan principal. Existing paid-in-full loans are represented as legacy repayment entries during migration.
+- Reusable budget calculations, recurrence date helpers, and a CSV parser foundation that supports quoted fields, comma/semicolon/tab delimiters, and configurable decimal-comma parsing.
+- Unit and Room tests for budget rules, recurrence dates, CSV parsing, duplicate prevention, repayments and migration preservation.
+
+### Important status notes
+This is an incremental upgrade, not the completed master roadmap. The recurring-schedule tables and CSV parser are data-layer foundations; the recurring-bills UI, WorkManager notifications, CSV file-picker/column-mapping/review workflow, backup/restore, and broader authentication/data-ownership work remain to be implemented. Budget thresholds currently persist and display in the app; Android notification delivery is not yet wired.
+
+### Verification
+Run the Android unit tests and build from the project root:
+
+```bash
+gradle :app:testDebugUnitTest
+gradle :app:assembleDebug
+```
+
+The changes in this branch have not yet been executed in a local Gradle environment. Confirm the test and build results before merging.
