@@ -1263,7 +1263,7 @@ fun TransactionApp(
                         backupError = null
                         Toast.makeText(
                             context,
-                            "Restore complete: ${result.transactions} transactions, ${result.loans} loans, ${result.savingsGoals} savings goals.",
+                            "Restore complete. The backup contained ${result.transactions} transactions, ${result.loans} loans and ${result.savingsGoals} savings goals.",
                             Toast.LENGTH_LONG
                         ).show()
                     }.onFailure {
