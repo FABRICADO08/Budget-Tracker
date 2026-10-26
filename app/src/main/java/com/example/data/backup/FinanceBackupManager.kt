@@ -521,6 +521,17 @@ class FinanceBackupManager(
             expenses = cloudJson.array("expenses").map { it.toExpense() },
             savingsGoals = cloudJson.array("savingsGoals").map { it.toSavingsGoal() }
         )
+        val cloudExpenseIds = cloud.expenses.map { it.id }.filter { it.isNotBlank() }
+        val cloudGoalIds = cloud.savingsGoals.map { it.id }.filter { it.isNotBlank() }
+        require(cloudExpenseIds.size == cloudExpenseIds.toSet().size) {
+            "Backup contains duplicate cloud expense IDs."
+        }
+        require(cloudGoalIds.size == cloudGoalIds.toSet().size) {
+            "Backup contains duplicate savings goal IDs."
+        }
+        require(cloud.expenses.size <= MAX_RECORDS_PER_COLLECTION &&
+            cloud.savingsGoals.size <= MAX_RECORDS_PER_COLLECTION
+        ) { "Backup has too many cloud records." }
         // Validate cloud-domain records and ID paths before any write begins.
         cloud.profile?.let { require(it.dailyBudget.isFinite() && it.dailyBudget >= 0.0) { "Invalid profile budget." } }
         cloud.expenses.forEach {
