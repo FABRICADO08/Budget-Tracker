@@ -271,7 +271,14 @@ class BudgetRepository(private val db: FirebaseFirestore) {
         require(uid == userId) { "Backup can only access the currently signed-in account." }
         val userRef = db.collection("users").document(uid)
         val profileSnapshot = userRef.get().await()
-        val profile = profileSnapshot.toObject(UserProfile::class.java)?.copy(id = uid, userId = uid)
+        val hasProfileFields = profileSnapshot.contains("dailyBudget") ||
+            profileSnapshot.contains("currencySymbol") ||
+            profileSnapshot.contains("userId")
+        val profile = if (hasProfileFields) {
+            profileSnapshot.toObject(UserProfile::class.java)?.copy(id = uid, userId = uid)
+        } else {
+            null
+        }
         val expenseDocs = userRef.collection("expenses").get().await().documents
         val goalDocs = userRef.collection("savingsGoals").get().await().documents
         val expenses = expenseDocs.mapNotNull { doc ->
