@@ -14,6 +14,12 @@ interface CategoryBudgetDao {
     @Query("SELECT * FROM category_budgets WHERE month = :month AND user_id = :userId ORDER BY category COLLATE NOCASE")
     fun observeForMonth(month: String, userId: String = ""): Flow<List<CategoryBudget>>
 
+    @Query("SELECT * FROM category_budgets WHERE user_id = :userId ORDER BY month, category COLLATE NOCASE")
+    suspend fun getAllForUser(userId: String): List<CategoryBudget>
+
+    @Query("DELETE FROM category_budgets WHERE user_id = :userId")
+    suspend fun deleteAllForUser(userId: String): Int
+
     @Query("SELECT * FROM category_budgets WHERE id = :id LIMIT 1")
     suspend fun getById(id: Long): CategoryBudget?
 
