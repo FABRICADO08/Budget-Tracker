@@ -580,19 +580,19 @@ class FinanceBackupManager(
         id = getLong("id"),
         borrowerName = requiredString("borrowerName"),
         amount = getDouble("amount").finiteAmount(allowZero = false),
-        lentDate = requiredString("lentDate"),
-        dueDate = requiredString("dueDate"),
+        lentDate = requiredString("lentDate").also { require(it.isBlank() || isIsoDate(it)) },
+        dueDate = requiredString("dueDate").also { require(it.isBlank() || isIsoDate(it)) },
         note = requiredString("note"),
         isRepaid = getBoolean("isRepaid"),
-        repaidDate = requiredString("repaidDate"),
+        repaidDate = requiredString("repaidDate").also { require(it.isBlank() || isIsoDate(it)) },
         createdAt = getLong("createdAt")
     )
 
     private fun JSONObject.toBudget(): CategoryBudget = CategoryBudget(
         id = getLong("id"),
         userId = "",
-        category = requiredString("category"),
-        month = requiredString("month").also { require(it.matches(Regex("\\d{4}-\\d{2}"))) },
+        category = requiredString("category").also { require(it.isNotBlank()) },
+        month = requiredString("month").also { require(isYearMonth(it)) },
         limitAmount = getDouble("limitAmount").finiteAmount(allowZero = false),
         carryUnused = getBoolean("carryUnused"),
         isPaused = getBoolean("isPaused"),
@@ -615,10 +615,10 @@ class FinanceBackupManager(
         amount = getDouble("amount").finiteAmount(allowZero = false),
         category = requiredString("category"),
         type = requiredString("type").also { require(it == "income" || it == "expense") },
-        startDate = requiredString("startDate"),
-        nextDueDate = requiredString("nextDueDate"),
+        startDate = requiredString("startDate").also { require(isIsoDate(it)) },
+        nextDueDate = requiredString("nextDueDate").also { require(isIsoDate(it)) },
         frequency = requiredString("frequency").also { require(it in setOf("WEEKLY", "BIWEEKLY", "MONTHLY", "QUARTERLY", "ANNUALLY")) },
-        endDate = nullableString("endDate"),
+        endDate = nullableString("endDate").also { require(it == null || isIsoDate(it)) },
         reminderDaysBefore = getInt("reminderDaysBefore").also { require(it in 0..30) },
         isActive = getBoolean("isActive"),
         createdAt = getLong("createdAt")
@@ -627,7 +627,7 @@ class FinanceBackupManager(
     private fun JSONObject.toOccurrence(): RecurringOccurrence = RecurringOccurrence(
         id = getLong("id"),
         recurringId = getLong("recurringId"),
-        dueDate = requiredString("dueDate"),
+        dueDate = requiredString("dueDate").also { require(isIsoDate(it)) },
         amount = getDouble("amount").finiteAmount(allowZero = false),
         status = requiredString("status").also { require(it in setOf("unpaid", "paid", "skipped")) },
         transactionId = nullableLong("transactionId"),
@@ -639,7 +639,7 @@ class FinanceBackupManager(
         id = getLong("id"),
         loanId = getLong("loanId"),
         amount = getDouble("amount").finiteAmount(allowZero = false),
-        paidDate = requiredString("paidDate"),
+        paidDate = requiredString("paidDate").also { require(isIsoDate(it)) },
         note = requiredString("note"),
         createdAt = getLong("createdAt")
     )
@@ -687,6 +687,11 @@ class FinanceBackupManager(
         return runCatching {
             java.text.SimpleDateFormat("yyyy-MM-dd", Locale.ROOT).apply { isLenient = false }.parse(value)
         }.getOrNull() != null
+    }
+
+    private fun isYearMonth(value: String): Boolean {
+        if (!value.matches(Regex("\\d{4}-(0[1-9]|1[0-2])"))) return false
+        return value.substring(0, 4).toIntOrNull()?.let { it > 0 } == true
     }
 
     private fun JSONObject.nullableString(name: String): String? =
