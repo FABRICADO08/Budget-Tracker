@@ -11,11 +11,11 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface CategoryBudgetDao {
-    @Query("SELECT * FROM category_budgets WHERE month = :month ORDER BY category COLLATE NOCASE")
-    fun observeForMonth(month: String): Flow<List<CategoryBudget>>
+    @Query("SELECT * FROM category_budgets WHERE user_id = :userId AND month = :month ORDER BY category COLLATE NOCASE")
+    fun observeForMonth(userId: String, month: String): Flow<List<CategoryBudget>>
 
-    @Query("SELECT * FROM category_budgets WHERE id = :id LIMIT 1")
-    suspend fun getById(id: Long): CategoryBudget?
+    @Query("SELECT * FROM category_budgets WHERE id = :id AND user_id = :userId LIMIT 1")
+    suspend fun getById(userId: String, id: Long): CategoryBudget?
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(budget: CategoryBudget): Long
@@ -26,6 +26,6 @@ interface CategoryBudgetDao {
     @Delete
     suspend fun delete(budget: CategoryBudget)
 
-    @Query("SELECT * FROM category_budgets WHERE category = :category AND month = :month LIMIT 1")
-    suspend fun find(category: String, month: String): CategoryBudget?
+    @Query("SELECT * FROM category_budgets WHERE user_id = :userId AND category = :category AND month = :month LIMIT 1")
+    suspend fun find(userId: String, category: String, month: String): CategoryBudget?
 }
