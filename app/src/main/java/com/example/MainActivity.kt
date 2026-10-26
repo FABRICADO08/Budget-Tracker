@@ -944,10 +944,10 @@ fun TransactionApp(
                     )
                 }
                 4 -> {
-                    CategoryBudgetsScreen(database = database, transactions = transactions)
+                    CategoryBudgetsScreen(database = database, transactions = transactions, userId = currentUser.uid)
                 }
                 5 -> {
-                    RecurringTransactionsScreen(database = database)
+                    RecurringTransactionsScreen(database = database, userId = currentUser.uid)
                 }
             }
         }
