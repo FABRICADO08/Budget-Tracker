@@ -6,11 +6,14 @@ import androidx.test.core.app.ApplicationProvider
 import com.example.base.FirestoreEmulatorTestBase
 import com.example.data.backup.FinanceBackupManager
 import com.example.data.local.database.AppDatabase
+import com.example.data.local.entity.Transaction
+import kotlinx.coroutines.runBlocking
 import com.example.data.repository.BudgetRepository
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertThrows
 import org.junit.Before
 import org.junit.Test
@@ -113,6 +116,48 @@ class FinanceBackupManagerTest : FirestoreEmulatorTestBase() {
             manager.inspectBackup(root.toString())
         }
         assertEquals(true, error.message?.contains("duplicate cloud expense IDs") == true)
+    }
+
+    @Test
+    fun replaceRestorePreservesOtherAccountsLocalRows() = runBlocking {
+        val uid = signInTestUser("backup_restore_test@example.com")
+        val ownedId = database.transactionDao().insert(
+            Transaction(
+                amount = 89.90,
+                category = "Groceries",
+                date = "2026-10-20",
+                description = "Original owned record",
+                userId = uid
+            )
+        )
+        val otherAccountId = database.transactionDao().insert(
+            Transaction(
+                amount = 500.0,
+                category = "Rent",
+                date = "2026-10-01",
+                description = "Another account record",
+                userId = "other-account"
+            )
+        )
+
+        val backup = manager.createBackup(uid)
+        database.transactionDao().insert(
+            Transaction(
+                amount = 12.50,
+                category = "Food & Dining",
+                date = "2026-10-25",
+                description = "Should be replaced",
+                userId = uid
+            )
+        )
+
+        val result = manager.restoreBackup(backup, uid, com.example.data.backup.BackupRestoreMode.REPLACE)
+        val restored = database.transactionDao().getAllForBackup(uid)
+        assertEquals(1, result.transactions)
+        assertEquals(1, restored.size)
+        assertEquals(ownedId, restored.single().id)
+        assertEquals("Original owned record", restored.single().description)
+        assertNotNull(database.transactionDao().getTransactionById(otherAccountId, "other-account"))
     }
 
 }
