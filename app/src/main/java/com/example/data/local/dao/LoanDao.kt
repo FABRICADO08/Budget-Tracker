@@ -13,6 +13,9 @@ interface LoanDao {
     @Query("SELECT * FROM loans WHERE user_id = :userId ORDER BY is_repaid ASC, created_at DESC")
     fun getAllLoans(userId: String): Flow<List<Loan>>
 
+    @Query("SELECT * FROM loans WHERE user_id = :userId ORDER BY is_repaid ASC, created_at DESC")
+    suspend fun getAllForBackup(userId: String): List<Loan>
+
     @Query("SELECT * FROM loans WHERE id = :id AND user_id = :userId LIMIT 1")
     suspend fun getById(id: Long, userId: String): Loan?
 
