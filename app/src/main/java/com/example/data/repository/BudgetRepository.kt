@@ -349,7 +349,7 @@ class BudgetRepository(private val db: FirebaseFirestore) {
                 "userId" to uid,
                 "dailyBudget" to profile.dailyBudget,
                 "currencySymbol" to profile.currencySymbol,
-                "createdAt" to (profile.createdAt ?: FieldValue.serverTimestamp()),
+                "createdAt" to (existing.profile?.createdAt ?: profile.createdAt ?: FieldValue.serverTimestamp()),
                 "updatedAt" to (profile.updatedAt ?: FieldValue.serverTimestamp())
             )
             userRef.set(values, com.google.firebase.firestore.SetOptions.merge()).await()
