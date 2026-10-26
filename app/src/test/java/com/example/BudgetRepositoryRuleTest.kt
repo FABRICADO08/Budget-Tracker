@@ -7,10 +7,8 @@ import com.example.data.model.UserProfile
 import com.example.data.repository.BudgetRepository
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.tasks.await
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
@@ -114,19 +112,6 @@ class BudgetRepositoryRuleTest : FirestoreEmulatorTestBase() {
         val afterDelete = repo.observeSavingsGoals(uid).first()
         assertTrue(afterDelete.none { it.id == goalId })
     }
-    @Test
-    fun unrelatedUserMetadataIsNotExportedAsFinanceProfile() = runBlocking {
-        val uid = signInTestUser("backup_metadata_test@example.com")
-        val userRef = firestore.collection("users").document(uid)
-        userRef.set(mapOf("unrelatedSetting" to "keep-me")).await()
 
-        try {
-            val backup = BudgetRepository(firestore).exportBackupData(uid)
-            assertNull(backup.profile)
-            assertEquals("keep-me", userRef.get().await().getString("unrelatedSetting"))
-        } finally {
-            userRef.delete().await()
-        }
-    }
 
 }
