@@ -156,6 +156,17 @@ Tests verify:
 - ViewModel reactive flow emissions
 
 
+## Premium UI and finance workflow upgrades
+
+- **Dashboard overview:** a high-contrast finance summary card highlights current-month spending, transaction count, and shortcuts to budgets and recurring bills.
+- **Persistent category budgets:** Room-backed monthly category limits support pause/resume, optional unused-budget carryover, and persisted 70%, 90%, and 100% threshold alerts. Budget changes do not rewrite transactions.
+- **Recurring bills and income:** create weekly, biweekly, monthly, quarterly, or annual schedules, see upcoming due dates, and record each occurrence as a transaction once. The schedule and occurrence tables use unique keys to prevent duplicate payment records.
+- **Bank CSV import:** choose a statement file, map date/description/amount/category/type columns, preview rows, and skip duplicate-looking entries before import. CSV parsing supports quoted fields, comma/semicolon/tab delimiters, and common South African amount formats.
+- **Partial loan repayments:** record repayment amounts, dates and notes; the repository rejects repayments greater than the remaining balance and keeps repayment history in Room.
+- **Build checks:** GitHub Actions runs JVM unit tests and assembles a debug APK for pull requests.
+
+Recurring due dates are currently shown in-app; this release does not claim that operating-system notifications are scheduled. Backup/restore and full per-user isolation of existing Room transaction/loan rows remain follow-up work before treating the app as multi-account secure.
+
 ## Category Budget Planner
 
 The **Budgets** tab lets a signed-in user set a monthly spending limit for common categories and categories already present in their transactions. It calculates current-month expense totals from local Room transactions, displays progress bars and remaining amounts, and flags categories that exceed their limits. Category limits are saved locally under the signed-in Firebase UID, so separate accounts on the same device have separate category-budget preferences.
