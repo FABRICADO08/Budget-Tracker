@@ -36,7 +36,7 @@ class TransactionViewModelTest {
             .build()
         transactionDao = db.transactionDao()
         loanDao = db.loanDao()
-        viewModel = TransactionViewModel(transactionDao, loanDao)
+        viewModel = TransactionViewModel(transactionDao, loanDao, "test-user")
     }
 
     @After
@@ -53,7 +53,7 @@ class TransactionViewModelTest {
             date = "2026-10-25"
         )
 
-        val list = transactionDao.getAllTransactions().first()
+        val list = transactionDao.getAllTransactions("test-user").first()
         assertFalse(list.isEmpty())
         val item = list.first()
         assertEquals(18.75, item.amount, 0.001)
@@ -61,7 +61,7 @@ class TransactionViewModelTest {
         assertEquals("Lunch bowl", item.description)
 
         viewModel.deleteTransaction(item)
-        val afterDelete = transactionDao.getAllTransactions().first()
+        val afterDelete = transactionDao.getAllTransactions("test-user").first()
         assertTrue(afterDelete.isEmpty())
     }
 
@@ -74,7 +74,7 @@ class TransactionViewModelTest {
             note = "Taxi fare"
         )
 
-        val loansList = loanDao.getAllLoans().first()
+        val loansList = loanDao.getAllLoans("test-user").first()
         assertFalse(loansList.isEmpty())
         val loan = loansList.first()
         assertEquals("Sipho", loan.borrowerName)
@@ -83,7 +83,7 @@ class TransactionViewModelTest {
 
         // Mark as brought back
         viewModel.toggleLoanRepaid(loan)
-        val updatedLoans = loanDao.getAllLoans().first()
+        val updatedLoans = loanDao.getAllLoans("test-user").first()
         val updatedLoan = updatedLoans.first { it.id == loan.id }
         assertTrue(updatedLoan.isRepaid)
         assertTrue(updatedLoan.repaidDate.isNotBlank())
