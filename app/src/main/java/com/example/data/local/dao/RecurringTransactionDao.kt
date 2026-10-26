@@ -36,6 +36,9 @@ interface RecurringTransactionDao {
     @Query("SELECT * FROM recurring_occurrences WHERE recurring_id = :recurringId AND due_date = :dueDate LIMIT 1")
     suspend fun getOccurrence(recurringId: Long, dueDate: String): RecurringOccurrence?
 
+    @Query("SELECT * FROM recurring_occurrences WHERE id = :id LIMIT 1")
+    suspend fun getOccurrenceById(id: Long): RecurringOccurrence?
+
     @Query("UPDATE recurring_occurrences SET status = :status, transaction_id = :transactionId WHERE id = :id")
     suspend fun markOccurrence(id: Long, status: String, transactionId: Long?)
 }
