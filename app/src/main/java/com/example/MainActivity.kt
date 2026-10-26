@@ -2012,6 +2012,7 @@ fun LoansScreen(
                 items(filteredLoans, key = { it.id }) { loan ->
                     LoanListItem(
                         database = database,
+                        userId = userId,
                         loan = loan,
                         onMarkRepaid = { onRequestMarkRepaid(loan) },
                         onRecordRepayment = { onRecordRepayment(loan) },
