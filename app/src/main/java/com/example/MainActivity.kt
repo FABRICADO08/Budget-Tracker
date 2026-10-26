@@ -132,6 +132,7 @@ import com.example.ui.screens.ChartboardScreen
 import com.example.ui.screens.BankCsvImportDialog
 import com.example.ui.screens.CategoryBudgetsScreen
 import com.example.ui.screens.RecurringTransactionsScreen
+import com.example.ui.screens.RecordLoanRepaymentDialog
 import com.example.ui.theme.BudgetTrackerTheme
 import com.example.ui.theme.ExpenseRed
 import com.example.ui.theme.IncomeGreen
@@ -349,6 +350,7 @@ fun TransactionApp(
     var showAddLoanDialog by remember { mutableStateOf(false) }
     var showProfileSecurityDialog by remember { mutableStateOf(false) }
     var loanToMarkRepaid by remember { mutableStateOf<Loan?>(null) }
+    var loanToRecordRepayment by remember { mutableStateOf<Loan?>(null) }
     var scannedDataForDialog by remember { mutableStateOf<ScannedSlipData?>(null) }
 
     val transactions by viewModel.transactions.collectAsState()
@@ -924,8 +926,10 @@ fun TransactionApp(
                 2 -> {
                     // Tab 2: Loans Given
                     LoansScreen(
+                        database = database,
                         loans = loans,
                         onRequestMarkRepaid = { loan -> loanToMarkRepaid = loan },
+                        onRecordRepayment = { loan -> loanToRecordRepayment = loan },
                         onUnmarkRepaid = { loan -> viewModel.unmarkLoanRepaid(loan) },
                         onDeleteLoan = { loan -> viewModel.deleteLoan(loan) },
                         onAddLoanClick = { showAddLoanDialog = true }
@@ -1065,6 +1069,18 @@ fun TransactionApp(
             onConfirm = { repaidDate ->
                 viewModel.markLoanAsRepaid(loanToMarkRepaid!!, repaidDate)
                 loanToMarkRepaid = null
+            }
+        )
+    }
+
+    if (loanToRecordRepayment != null) {
+        RecordLoanRepaymentDialog(
+            database = database,
+            loan = loanToRecordRepayment!!,
+            onDismiss = { loanToRecordRepayment = null },
+            onSaved = {
+                loanToRecordRepayment = null
+                Toast.makeText(context, "Repayment recorded.", Toast.LENGTH_SHORT).show()
             }
         )
     }
@@ -1706,8 +1722,10 @@ fun EditBudgetDialog(
 
 @Composable
 fun LoansScreen(
+    database: AppDatabase,
     loans: List<Loan>,
     onRequestMarkRepaid: (Loan) -> Unit,
+    onRecordRepayment: (Loan) -> Unit,
     onUnmarkRepaid: (Loan) -> Unit,
     onDeleteLoan: (Loan) -> Unit,
     onAddLoanClick: () -> Unit
@@ -1907,8 +1925,10 @@ fun LoansScreen(
             ) {
                 items(filteredLoans, key = { it.id }) { loan ->
                     LoanListItem(
+                        database = database,
                         loan = loan,
                         onMarkRepaid = { onRequestMarkRepaid(loan) },
+                        onRecordRepayment = { onRecordRepayment(loan) },
                         onUnmarkRepaid = { onUnmarkRepaid(loan) },
                         onDelete = { onDeleteLoan(loan) }
                     )
@@ -1920,7 +1940,9 @@ fun LoansScreen(
 
 @Composable
 fun LoanListItem(
+    database: AppDatabase,
     loan: Loan,
+    onRecordRepayment: () -> Unit,
     onMarkRepaid: () -> Unit,
     onUnmarkRepaid: () -> Unit,
     onDelete: () -> Unit
@@ -1997,6 +2019,8 @@ fun LoanListItem(
                     }
                 }
             }
+
+            LoanRepaymentBalance(database = database, loan = loan)
 
             if (loan.note.isNotBlank()) {
                 Spacer(modifier = Modifier.height(8.dp))
@@ -2085,8 +2109,24 @@ fun LoanListItem(
                     }
                 }
             }
+            if (!loan.isRepaid) {
+                TextButton(onClick = onRecordRepayment, modifier = Modifier.fillMaxWidth()) {
+                    Text("Record a partial repayment")
+                }
+            }
         }
     }
+}
+
+@Composable
+private fun LoanRepaymentBalance(database: AppDatabase, loan: Loan) {
+    val paid by database.loanRepaymentDao().observeTotalForLoan(loan.id).collectAsState(initial = 0.0)
+    val remaining = (loan.amount - paid).coerceAtLeast(0.0)
+    Text(
+        text = "Received R%.2f · Remaining R%.2f".format(paid, remaining),
+        style = MaterialTheme.typography.bodySmall,
+        color = if (remaining <= 0.005) IncomeGreen else MaterialTheme.colorScheme.onSurfaceVariant
+    )
 }
 
 /**
