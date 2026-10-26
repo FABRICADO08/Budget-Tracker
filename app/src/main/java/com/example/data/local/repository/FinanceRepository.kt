@@ -37,9 +37,13 @@ class FinanceRepository(private val database: AppDatabase) {
     suspend fun deleteBudget(budget: CategoryBudget) = budgets.delete(budget)
 
     /** Inserts each threshold alert once per budget and month, even if this is called repeatedly. */
-    suspend fun recordCrossedBudgetAlerts(budget: CategoryBudget, spent: Double): List<Int> =
-        database.withTransaction {
-            val thresholds = BudgetRules.crossedThresholds(budget.limitAmount, spent)
+    suspend fun recordCrossedBudgetAlerts(
+        budget: CategoryBudget,
+        spent: Double,
+        effectiveLimit: Double = budget.limitAmount
+    ): List<Int> = database.withTransaction {
+            require(budget.id > 0L) { "Save the budget before recording alerts." }
+            val thresholds = BudgetRules.crossedThresholds(effectiveLimit, spent)
             thresholds.forEach { threshold ->
                 alerts.insertIfNew(
                     BudgetAlert(
