@@ -8,6 +8,8 @@ A modern, offline-first personal finance and expense tracking Android applicatio
 
 ### 1. Expense Tracking & Transactions
 - **South African Rand (`R`) Currency**: Formatted for ZAR across all screens, transactions, and analytics.
+- **Customizable Monthly Budget Target**: Set spending goals in Rands with live progress bars and warning alerts if spending exceeds the target limit.
+- **Financial Statement & Report Export**: Share or export comprehensive financial statements (totals, itemized expenses, and debt balances) directly via Android's native share sheet.
 - **Search & Filtering**: Search bar to instantly filter transactions by category or description.
 - **Receipt & Till Slip Scanner**: Capture or pick till slips and receipts using Android's Photo Picker; **Gemini AI** extracts the store name, date, and total amount directly into the expense form.
 - **Add & Manage Transactions**: Categorize spending into Groceries, Food & Dining, Transportation, Bills & Utilities, Entertainment, and more.
@@ -25,6 +27,7 @@ A modern, offline-first personal finance and expense tracking Android applicatio
 ### 3. Loan & Debt Tracker
 - **Lend Tracking**: Log loans given to individuals with borrower name, amount, lent date, due date, and notes.
 - **Material 3 Date Pickers**: Selectable dates for loan issue dates and return dates.
+- **1-Tap Friendly Reminders**: Pre-composed polite reminder message shareable via WhatsApp, SMS, or email in 1 tap.
 - **Mark as Repaid Flow**: Records the exact date when a borrower returns the money and marks the record with a green "Paid Back" badge.
 - **Unmark & Delete**: Easily unmark loans or remove completed debt records.
 

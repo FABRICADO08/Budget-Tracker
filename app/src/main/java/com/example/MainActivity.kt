@@ -1,5 +1,6 @@
 package com.example
 
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -43,6 +44,7 @@ import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.DocumentScanner
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Fastfood
 import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.FitnessCenter
@@ -58,6 +60,8 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -133,7 +137,9 @@ import com.example.ui.viewmodel.ScannedSlipData
 import com.example.ui.viewmodel.SlipScannerViewModel
 import com.example.ui.viewmodel.TransactionViewModel
 import com.example.util.BiometricHelper
+import com.example.util.BudgetPreferences
 import com.example.util.SecurityPreferences
+import com.example.util.StatementExporter
 import com.example.util.configureAppCheck
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseUser
@@ -452,6 +458,21 @@ fun TransactionApp(
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         }
+                    }
+
+                    // Export & Share Statement Button
+                    IconButton(
+                        onClick = {
+                            val currentBudget = BudgetPreferences.getMonthlyBudgetCap(context)
+                            StatementExporter.shareFinancialStatement(context, transactions, loans, currentBudget)
+                        },
+                        modifier = Modifier.testTag("export_statement_top_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Share,
+                            contentDescription = "Export Financial Statement",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
 
                     // User Account & Fingerprint Security Button
@@ -961,6 +982,8 @@ fun TransactionApp(
     if (showProfileSecurityDialog) {
         ProfileSecurityDialog(
             currentUser = currentUser,
+            transactions = transactions,
+            loans = loans,
             onDismiss = { showProfileSecurityDialog = false },
             onSignOut = {
                 showProfileSecurityDialog = false
@@ -981,6 +1004,8 @@ fun TransactionApp(
 @Composable
 fun ProfileSecurityDialog(
     currentUser: FirebaseUser,
+    transactions: List<Transaction> = emptyList(),
+    loans: List<Loan> = emptyList(),
     onDismiss: () -> Unit,
     onSignOut: () -> Unit
 ) {
@@ -1163,6 +1188,69 @@ fun ProfileSecurityDialog(
                         )
                     }
                 }
+
+                // Export & Share Financial Statement Option
+                HorizontalDivider()
+
+                Text(
+                    text = "REPORTS & STATEMENTS",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    letterSpacing = 1.sp
+                )
+
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            val currentBudget = BudgetPreferences.getMonthlyBudgetCap(context)
+                            StatementExporter.shareFinancialStatement(context, transactions, loans, currentBudget)
+                        },
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Share,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Text(
+                                    text = "Share Financial Statement",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Text(
+                                    text = "Export monthly totals, expenses & loan records",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        Text(
+                            text = "Export →",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
             }
         },
         confirmButton = {
@@ -1191,7 +1279,14 @@ fun MonthlyExpenditureSummary(
     viewModel: TransactionViewModel,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val transactions by viewModel.transactions.collectAsState()
+    val loans by viewModel.loans.collectAsState()
+
+    var monthlyBudget by remember {
+        mutableStateOf(BudgetPreferences.getMonthlyBudgetCap(context))
+    }
+    var showEditBudgetDialog by remember { mutableStateOf(false) }
 
     val currentYearMonth = remember {
         SimpleDateFormat("yyyy-MM", Locale.getDefault()).format(Date())
@@ -1211,6 +1306,23 @@ fun MonthlyExpenditureSummary(
         Calendar.getInstance().get(Calendar.DAY_OF_MONTH).coerceAtLeast(1)
     }
     val dailyAvg = if (currentDay > 0) totalExpenditure / currentDay else 0.0
+
+    val budgetProgress = if (monthlyBudget > 0) (totalExpenditure / monthlyBudget).toFloat() else 0f
+    val isOverBudget = monthlyBudget > 0 && totalExpenditure > monthlyBudget
+    val remainingBudget = (monthlyBudget - totalExpenditure).coerceAtLeast(0.0)
+    val overBudgetAmount = (totalExpenditure - monthlyBudget).coerceAtLeast(0.0)
+
+    if (showEditBudgetDialog) {
+        EditBudgetDialog(
+            currentBudget = monthlyBudget,
+            onDismiss = { showEditBudgetDialog = false },
+            onConfirm = { newBudget ->
+                BudgetPreferences.setMonthlyBudgetCap(context, newBudget)
+                monthlyBudget = newBudget
+                showEditBudgetDialog = false
+            }
+        )
+    }
 
     Card(
         modifier = modifier
@@ -1279,14 +1391,125 @@ fun MonthlyExpenditureSummary(
                     color = Color.White.copy(alpha = 0.82f)
                 )
                 Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = "R%.2f".format(totalExpenditure),
-                    style = MaterialTheme.typography.displaySmall,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Color.White
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "R%.2f".format(totalExpenditure),
+                        style = MaterialTheme.typography.displaySmall,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color.White
+                    )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                    // Quick export / share statement icon
+                    IconButton(
+                        onClick = {
+                            StatementExporter.shareFinancialStatement(context, transactions, loans, monthlyBudget)
+                        },
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Share,
+                            contentDescription = "Export statement",
+                            tint = Color.White.copy(alpha = 0.85f),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Monthly Budget Target Section
+                Surface(
+                    color = Color.Black.copy(alpha = 0.25f),
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "Budget Target: ",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color.White.copy(alpha = 0.85f)
+                                )
+                                Text(
+                                    text = "R%.0f".format(monthlyBudget),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                            }
+
+                            Surface(
+                                color = Color.White.copy(alpha = 0.18f),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.clickable { showEditBudgetDialog = true }
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Edit,
+                                        contentDescription = "Edit budget target",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(12.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "Edit Target",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White,
+                                        fontSize = 10.sp
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        LinearProgressIndicator(
+                            progress = { budgetProgress.coerceIn(0f, 1f) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(6.dp)
+                                .clip(RoundedCornerShape(3.dp)),
+                            color = if (isOverBudget) Color(0xFFF87171) else if (budgetProgress > 0.8f) Color(0xFFFBBF24) else Color(0xFF34D399),
+                            trackColor = Color.White.copy(alpha = 0.2f)
+                        )
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = if (isOverBudget) "⚠️ Over limit by R%.2f".format(overBudgetAmount) else "R%.2f remaining".format(remainingBudget),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (isOverBudget) Color(0xFFFCA5A5) else Color(0xFF6EE7B7)
+                            )
+                            Text(
+                                text = "%.0f%% used".format(budgetProgress * 100),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White.copy(alpha = 0.9f)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
 
                 // Stats footer inside the card
                 Row(
@@ -1313,6 +1536,79 @@ fun MonthlyExpenditureSummary(
             }
         }
     }
+}
+
+/**
+ * Dialog enabling users to customize their monthly spending budget target in South African Rand (R).
+ */
+@Composable
+fun EditBudgetDialog(
+    currentBudget: Double,
+    onDismiss: () -> Unit,
+    onConfirm: (Double) -> Unit
+) {
+    var budgetText by remember { mutableStateOf(if (currentBudget > 0) "%.0f".format(currentBudget) else "5000") }
+    var isError by remember { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.AccountBalanceWallet,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(22.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Set Monthly Budget Target", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            }
+        },
+        text = {
+            Column {
+                Text(
+                    text = "Set your planned spending cap for the month in South African Rand (R). The app will track your daily pace and alert you as you near the limit.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(14.dp))
+                OutlinedTextField(
+                    value = budgetText,
+                    onValueChange = {
+                        budgetText = it
+                        isError = it.toDoubleOrNull() == null || (it.toDoubleOrNull() ?: 0.0) <= 0
+                    },
+                    label = { Text("Monthly Budget (R)") },
+                    prefix = { Text("R ") },
+                    isError = isError,
+                    supportingText = if (isError) { { Text("Enter a valid amount greater than 0") } } else null,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true,
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    val amount = budgetText.toDoubleOrNull()
+                    if (amount != null && amount > 0) {
+                        onConfirm(amount)
+                    } else {
+                        isError = true
+                    }
+                }
+            ) {
+                Text("Save Target")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }
 
 @Composable
@@ -1650,18 +1946,41 @@ fun LoanListItem(
                 }
 
                 if (!loan.isRepaid) {
-                    Button(
-                        onClick = onMarkRepaid,
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = IncomeGreen,
-                            contentColor = Color.White
-                        ),
-                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+                    val context = LocalContext.current
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(imageVector = Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Brought Back", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        OutlinedButton(
+                            onClick = {
+                                val reminderText = "Hi ${loan.borrowerName}, friendly reminder regarding the loan of R${"%.2f".format(loan.amount)} lent on ${loan.lentDate}${if (loan.dueDate.isNotBlank()) " (due ${loan.dueDate})" else ""}. Thank you!"
+                                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    putExtra(Intent.EXTRA_TEXT, reminderText)
+                                }
+                                context.startActivity(Intent.createChooser(shareIntent, "Send Reminder to ${loan.borrowerName}"))
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                        ) {
+                            Icon(imageVector = Icons.Default.Send, contentDescription = "Remind", modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Remind", fontSize = 12.sp)
+                        }
+
+                        Button(
+                            onClick = onMarkRepaid,
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = IncomeGreen,
+                                contentColor = Color.White
+                            ),
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+                        ) {
+                            Icon(imageVector = Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Brought Back", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        }
                     }
                 } else {
                     OutlinedButton(
