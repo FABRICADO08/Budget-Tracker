@@ -541,18 +541,36 @@ class FinanceBackupManager(
         require(cloud.expenses.size <= MAX_RECORDS_PER_COLLECTION &&
             cloud.savingsGoals.size <= MAX_RECORDS_PER_COLLECTION
         ) { "Backup has too many cloud records." }
-        // Validate cloud-domain records and ID paths before any write begins.
-        cloud.profile?.let { require(it.dailyBudget.isFinite() && it.dailyBudget >= 0.0) { "Invalid profile budget." } }
+        // Match Firestore security-rule constraints so preview catches invalid payloads before writes.
+        cloud.profile?.let {
+            require(it.dailyBudget.isFinite() && it.dailyBudget in 0.0..1_000_000.0) {
+                "Profile daily budget is outside the allowed range."
+            }
+            require(it.currencySymbol.length in 1..5) { "Profile currency symbol must contain 1–5 characters." }
+        }
         cloud.expenses.forEach {
-            require(it.amount.isFinite() && it.amount >= 0.0) { "Invalid cloud expense amount." }
+            require(it.title.length in 1..100) { "Cloud expense title must contain 1–100 characters." }
+            require(it.amount.isFinite() && it.amount > 0.0 && it.amount <= 10_000_000.0) {
+                "Cloud expense amount is outside the allowed range."
+            }
+            require(it.category.length in 1..50) { "Cloud expense category must contain 1–50 characters." }
+            require(it.date.length in 8..10) { "Cloud expense date must contain 8–10 characters." }
             require(it.type == "income" || it.type == "expense") { "Invalid cloud transaction type." }
-            require(it.id.isBlank() || !it.id.contains('/')) { "Invalid expense ID." }
+            require(it.note.length <= 500) { "Cloud expense note is too long." }
+            require(it.id.isBlank() || isValidCloudDocumentId(it.id)) { "Invalid cloud expense ID." }
         }
         cloud.savingsGoals.forEach {
-            require(it.targetAmount.isFinite() && it.targetAmount >= 0.0 && it.currentAmount.isFinite() && it.currentAmount >= 0.0) {
-                "Invalid savings goal amount."
+            require(it.title.length in 1..100) { "Savings goal title must contain 1–100 characters." }
+            require(it.targetAmount.isFinite() && it.targetAmount > 0.0 && it.targetAmount <= 10_000_000.0) {
+                "Savings goal target is outside the allowed range."
             }
-            require(it.id.isBlank() || !it.id.contains('/')) { "Invalid savings goal ID." }
+            require(it.currentAmount.isFinite() && it.currentAmount >= 0.0 && it.currentAmount <= 10_000_000.0) {
+                "Savings goal saved amount is outside the allowed range."
+            }
+            require(it.targetDate.length <= 20) { "Savings goal target date is too long." }
+            require(it.category.length <= 50) { "Savings goal category is too long." }
+            require(it.colorHex.length <= 10) { "Savings goal color value is too long." }
+            require(it.id.isBlank() || isValidCloudDocumentId(it.id)) { "Invalid savings goal ID." }
         }
         return ParsedBackup(sourceUid, createdAt, local, cloud)
     }
@@ -699,6 +717,9 @@ class FinanceBackupManager(
 
     private fun JSONObject.nullableLong(name: String): Long? =
         if (isNull(name)) null else getLong(name)
+
+    private fun isValidCloudDocumentId(value: String): Boolean =
+        value.length in 1..64 && value.matches(Regex("^[a-zA-Z0-9_-]+$"))
 
     private fun ensureUniquePositiveIds(kind: String, ids: List<Long>) {
         require(ids.all { it > 0L }) { "Backup contains an invalid $kind ID." }
