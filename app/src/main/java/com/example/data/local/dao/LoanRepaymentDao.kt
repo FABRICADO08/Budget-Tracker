@@ -36,6 +36,14 @@ interface LoanRepaymentDao {
     suspend fun insert(repayment: LoanRepayment): Long
 
     @Query("""
+        SELECT r.* FROM loan_repayments r
+        INNER JOIN loans l ON l.id = r.loan_id
+        WHERE l.user_id = :userId
+        ORDER BY r.loan_id, r.paid_date, r.id
+    """)
+    suspend fun getAllForUser(userId: String): List<LoanRepayment>
+
+    @Query("""
         DELETE FROM loan_repayments WHERE id = :id AND loan_id IN (
             SELECT id FROM loans WHERE user_id = :userId
         )
