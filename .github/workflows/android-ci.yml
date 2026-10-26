@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - feature/premium-ui-finance-upgrade
+      - feature/phase3-data-safety
 
 permissions:
   contents: read
