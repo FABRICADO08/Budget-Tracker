@@ -31,6 +31,7 @@ import java.util.Locale
 fun RecordLoanRepaymentDialog(
     database: AppDatabase,
     loan: Loan,
+    userId: String,
     onDismiss: () -> Unit,
     onSaved: () -> Unit
 ) {
@@ -80,7 +81,7 @@ fun RecordLoanRepaymentDialog(
                     saving = true
                     scope.launch {
                         runCatching {
-                            repository.recordLoanRepayment(loan.id, amount.toDouble(), date, note)
+                            repository.recordLoanRepayment(loan.id, userId, amount.toDouble(), date, note)
                         }.onSuccess {
                             onSaved()
                         }.onFailure {
