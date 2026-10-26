@@ -10,12 +10,14 @@ import com.example.data.local.dao.BudgetAlertDao
 import com.example.data.local.dao.CategoryBudgetDao
 import com.example.data.local.dao.LoanDao
 import com.example.data.local.dao.LoanRepaymentDao
+import com.example.data.local.dao.LegacyDataOwnershipDao
 import com.example.data.local.dao.RecurringTransactionDao
 import com.example.data.local.dao.TransactionDao
 import com.example.data.local.entity.BudgetAlert
 import com.example.data.local.entity.CategoryBudget
 import com.example.data.local.entity.Loan
 import com.example.data.local.entity.LoanRepayment
+import com.example.data.local.entity.LegacyDataOwnership
 import com.example.data.local.entity.RecurringOccurrence
 import com.example.data.local.entity.RecurringTransaction
 import com.example.data.local.entity.Transaction
@@ -32,9 +34,10 @@ import com.example.data.local.entity.Transaction
         BudgetAlert::class,
         RecurringTransaction::class,
         RecurringOccurrence::class,
-        LoanRepayment::class
+        LoanRepayment::class,
+        LegacyDataOwnership::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -44,6 +47,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun budgetAlertDao(): BudgetAlertDao
     abstract fun recurringTransactionDao(): RecurringTransactionDao
     abstract fun loanRepaymentDao(): LoanRepaymentDao
+    abstract fun legacyDataOwnershipDao(): LegacyDataOwnershipDao
 
     companion object {
         private const val DATABASE_NAME = "budget_tracker.db"
@@ -153,6 +157,31 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Adds owner UIDs without assigning old device-local records to the first account
+         * silently. Existing rows remain unowned until the user explicitly accepts the claim
+         * dialog; a singleton decision row records either accept or decline.
+         */
+        val MIGRATION_3_4: Migration = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE transactions ADD COLUMN user_id TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE loans ADD COLUMN user_id TEXT NOT NULL DEFAULT ''")
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_transactions_user_id_date ON transactions(user_id, date)"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_loans_user_id_created_at ON loans(user_id, created_at)"
+                )
+                db.execSQL(
+                    """CREATE TABLE IF NOT EXISTS legacy_data_ownership (
+                        id INTEGER NOT NULL PRIMARY KEY,
+                        owner_uid TEXT NOT NULL,
+                        decision_made_at INTEGER NOT NULL
+                    )"""
+                )
+            }
+        }
+
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
@@ -163,7 +192,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     DATABASE_NAME
                 )
-                    .addMigrations(MIGRATION_2_3)
+                    .addMigrations(MIGRATION_2_3, MIGRATION_3_4)
                     .build()
                     .also { INSTANCE = it }
             }
