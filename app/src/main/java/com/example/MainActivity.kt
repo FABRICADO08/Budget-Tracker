@@ -121,6 +121,10 @@ import androidx.credentials.CredentialManager
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.data.local.database.AppDatabase
+import com.example.data.backup.BackupRestoreMode
+import com.example.data.backup.FinanceBackupManager
+import com.example.data.backup.FinanceBackupPreview
+import com.example.data.repository.BudgetRepository
 import com.example.data.local.repository.LegacyDataOwnershipRepository
 import com.example.data.local.repository.LegacyDataOwnershipStatus
 import com.example.data.local.entity.Loan
@@ -130,6 +134,8 @@ import com.example.ui.auth.signOut
 import com.example.ui.components.MonthlySpendingBarChart
 import com.example.ui.components.PremiumDashboardHero
 import com.example.ui.screens.AiChatScreen
+import com.example.ui.screens.BackupRestoreDialog
+import com.example.ui.screens.BackupRestoreConfirmationDialog
 import com.example.ui.screens.ChartboardScreen
 import com.example.ui.screens.BankCsvImportDialog
 import com.example.ui.screens.CategoryBudgetsScreen
@@ -347,6 +353,16 @@ fun TransactionApp(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val credentialManager = remember { CredentialManager.create(context) }
+    val backupManager = remember(database, currentUser.uid) {
+        FinanceBackupManager(context, database, BudgetRepository(context))
+    }
+    var showBackupRestoreDialog by remember { mutableStateOf(false) }
+    var backupBusy by remember { mutableStateOf(false) }
+    var backupError by remember { mutableStateOf<String?>(null) }
+    var pendingBackupJson by remember { mutableStateOf<String?>(null) }
+    var restoreBackupJson by remember { mutableStateOf<String?>(null) }
+    var restoreBackupPreview by remember { mutableStateOf<FinanceBackupPreview?>(null) }
+    var restoreMode by remember { mutableStateOf(BackupRestoreMode.MERGE) }
     val legacyOwnershipRepository = remember(database) { LegacyDataOwnershipRepository(database) }
     var legacyDataStatus by remember(database, currentUser.uid) {
         mutableStateOf<LegacyDataOwnershipStatus?>(null)
@@ -371,6 +387,75 @@ fun TransactionApp(
     var loanToMarkRepaid by remember { mutableStateOf<Loan?>(null) }
     var loanToRecordRepayment by remember { mutableStateOf<Loan?>(null) }
     var scannedDataForDialog by remember { mutableStateOf<ScannedSlipData?>(null) }
+
+    val createBackupLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        val json = pendingBackupJson
+        pendingBackupJson = null
+        if (uri == null || json == null) {
+            Toast.makeText(context, "Backup export cancelled.", Toast.LENGTH_SHORT).show()
+        } else {
+            coroutineScope.launch {
+                backupBusy = true
+                backupError = null
+                runCatching {
+                    val output = context.contentResolver.openOutputStream(uri, "wt")
+                        ?: error("Unable to open the selected backup file.")
+                    output.use { stream ->
+                        stream.write(json.toByteArray(Charsets.UTF_8))
+                        stream.flush()
+                    }
+                }.onSuccess {
+                    Toast.makeText(context, "Finance backup exported.", Toast.LENGTH_LONG).show()
+                }.onFailure {
+                    backupError = it.message ?: "Could not write the backup file."
+                    showBackupRestoreDialog = true
+                }
+                backupBusy = false
+            }
+        }
+    }
+
+    val openBackupLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            coroutineScope.launch {
+                backupBusy = true
+                backupError = null
+                runCatching {
+                    val input = context.contentResolver.openInputStream(uri)
+                        ?: error("Unable to read the selected backup file.")
+                    val bytes = input.use { stream ->
+                        val output = java.io.ByteArrayOutputStream()
+                        val buffer = ByteArray(8192)
+                        var total = 0
+                        while (true) {
+                            val count = stream.read(buffer)
+                            if (count < 0) break
+                            total += count
+                            require(total <= FinanceBackupManager.MAX_BACKUP_BYTES) {
+                                "Backup is larger than the supported 25 MB limit."
+                            }
+                            output.write(buffer, 0, count)
+                        }
+                        output.toByteArray()
+                    }
+                    val json = String(bytes, Charsets.UTF_8)
+                    val preview = backupManager.inspectBackup(json)
+                    restoreBackupJson = json
+                    restoreBackupPreview = preview
+                    restoreMode = BackupRestoreMode.MERGE
+                    showBackupRestoreDialog = false
+                }.onFailure {
+                    backupError = it.message ?: "Could not read or validate this backup."
+                    showBackupRestoreDialog = true
+                }
+                backupBusy = false
+            }
+        }
+    }
 
     val transactions by viewModel.transactions.collectAsState()
     val loans by viewModel.loans.collectAsState()
@@ -1110,6 +1195,11 @@ fun TransactionApp(
             transactions = transactions,
             loans = loans,
             onDismiss = { showProfileSecurityDialog = false },
+            onBackupRestoreClick = {
+                showProfileSecurityDialog = false
+                backupError = null
+                showBackupRestoreDialog = true
+            },
             onSignOut = {
                 showProfileSecurityDialog = false
                 signOut(
@@ -1118,6 +1208,76 @@ fun TransactionApp(
                     onSignOutComplete = onSignOut,
                     scope = coroutineScope
                 )
+            }
+        )
+    }
+
+    if (showBackupRestoreDialog) {
+        BackupRestoreDialog(
+            busy = backupBusy,
+            error = backupError,
+            onCreateBackup = {
+                coroutineScope.launch {
+                    backupBusy = true
+                    backupError = null
+                    runCatching { backupManager.createBackup(currentUser.uid) }
+                        .onSuccess { json ->
+                            pendingBackupJson = json
+                            val timestamp = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.ROOT).format(Date())
+                            createBackupLauncher.launch("budget-tracker-backup-$timestamp.json")
+                        }
+                        .onFailure {
+                            backupError = it.message ?: "Could not prepare the backup."
+                        }
+                    backupBusy = false
+                }
+            },
+            onSelectBackup = {
+                backupError = null
+                openBackupLauncher.launch(arrayOf("application/json", "text/json", "text/plain"))
+            },
+            onDismiss = { if (!backupBusy) { showBackupRestoreDialog = false; backupError = null } }
+        )
+    }
+
+    if (restoreBackupPreview != null && restoreBackupJson != null) {
+        BackupRestoreConfirmationDialog(
+            preview = restoreBackupPreview!!,
+            mode = restoreMode,
+            busy = backupBusy,
+            error = backupError,
+            onModeChange = { restoreMode = it },
+            onConfirm = {
+                coroutineScope.launch {
+                    backupBusy = true
+                    backupError = null
+                    runCatching {
+                        backupManager.restoreBackup(
+                            json = restoreBackupJson!!,
+                            currentUserId = currentUser.uid,
+                            mode = restoreMode
+                        )
+                    }.onSuccess { result ->
+                        restoreBackupJson = null
+                        restoreBackupPreview = null
+                        backupError = null
+                        Toast.makeText(
+                            context,
+                            "Restore complete: ${result.transactions} transactions, ${result.loans} loans, ${result.savingsGoals} savings goals.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }.onFailure {
+                        backupError = it.message ?: "Restore failed."
+                    }
+                    backupBusy = false
+                }
+            },
+            onCancel = {
+                if (!backupBusy) {
+                    restoreBackupJson = null
+                    restoreBackupPreview = null
+                    backupError = null
+                }
             }
         )
     }
@@ -1199,6 +1359,7 @@ fun ProfileSecurityDialog(
     transactions: List<Transaction> = emptyList(),
     loans: List<Loan> = emptyList(),
     onDismiss: () -> Unit,
+    onBackupRestoreClick: () -> Unit,
     onSignOut: () -> Unit
 ) {
     val context = LocalContext.current
@@ -1375,6 +1536,35 @@ fun ProfileSecurityDialog(
                         )
                         Text(
                             text = "All expenses, loans & settings stay saved locally and synced with your Google account.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                Text(
+                    text = "BACKUP & RESTORE",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    letterSpacing = 1.sp
+                )
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onBackupRestoreClick() },
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.45f)
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(5.dp)
+                    ) {
+                        Text("Create or restore a finance backup", fontWeight = FontWeight.SemiBold)
+                        Text(
+                            "Export a versioned JSON file or restore with duplicate-safe merge or account-only replace.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
