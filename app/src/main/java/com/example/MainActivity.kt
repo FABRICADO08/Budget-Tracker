@@ -156,6 +156,7 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
+import kotlinx.coroutines.launch
 
 class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -187,6 +188,8 @@ class MainActivity : FragmentActivity() {
                         }
                     )
                 } else {
+                    // Capture the delegated state in a stable local to support smart casts.
+                    val signedInUser = requireNotNull(currentUser)
                     // Authenticated: check if Fingerprint / Biometric Lock is active
                     val activity = context as FragmentActivity
                     var isUnlocked by remember {
@@ -203,8 +206,8 @@ class MainActivity : FragmentActivity() {
                         // User is authenticated and biometric passed: display application
                         val db = remember { AppDatabase.getInstance(context) }
                         val transactionViewModel: TransactionViewModel = viewModel(
-                            key = "transaction-viewmodel-${currentUser.uid}",
-                            factory = TransactionViewModel.Factory(db.transactionDao(), db.loanDao(), currentUser.uid)
+                            key = "transaction-viewmodel-${signedInUser.uid}",
+                            factory = TransactionViewModel.Factory(db.transactionDao(), db.loanDao(), signedInUser.uid)
                         )
                         val slipScannerViewModel: SlipScannerViewModel = viewModel()
                         val aiChatViewModel: AiChatViewModel = viewModel()
@@ -214,7 +217,7 @@ class MainActivity : FragmentActivity() {
                             viewModel = transactionViewModel,
                             scannerViewModel = slipScannerViewModel,
                             aiChatViewModel = aiChatViewModel,
-                            currentUser = currentUser!!,
+                            currentUser = signedInUser,
                             onSignOut = {
                                 isUnlocked = false
                                 currentUser = null
@@ -2024,6 +2027,7 @@ fun LoansScreen(
 @Composable
 fun LoanListItem(
     database: AppDatabase,
+    userId: String,
     loan: Loan,
     onRecordRepayment: () -> Unit,
     onMarkRepaid: () -> Unit,
