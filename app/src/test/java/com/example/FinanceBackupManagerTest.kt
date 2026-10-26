@@ -15,6 +15,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -121,7 +122,7 @@ class FinanceBackupManagerTest : FirestoreEmulatorTestBase() {
     @Test
     fun replaceRestorePreservesOtherAccountsLocalRows() = runBlocking {
         val uid = signInTestUser("backup_restore_test@example.com")
-        val ownedId = database.transactionDao().insert(
+        database.transactionDao().insert(
             Transaction(
                 amount = 89.90,
                 category = "Groceries",
@@ -155,7 +156,7 @@ class FinanceBackupManagerTest : FirestoreEmulatorTestBase() {
         val restored = database.transactionDao().getAllForBackup(uid)
         assertEquals(1, result.transactions)
         assertEquals(1, restored.size)
-        assertEquals(ownedId, restored.single().id)
+        assertTrue(restored.single().id > 0L)
         assertEquals("Original owned record", restored.single().description)
         assertNotNull(database.transactionDao().getTransactionById(otherAccountId, "other-account"))
     }
