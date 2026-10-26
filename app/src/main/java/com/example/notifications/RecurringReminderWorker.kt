@@ -104,7 +104,7 @@ class RecurringReminderWorker(
                 notificationManager.notify(notificationId, notification)
                 // Persist only after notify succeeds. Unique work plus this field prevents routine
                 // repeated reminders for the same schedule/date across worker executions.
-                dao.markReminderSentIfPending(occurrence.id, System.currentTimeMillis())
+                dao.markReminderSentIfPending(occurrence.id, schedule.userId, System.currentTimeMillis())
             }
             Result.success()
         } catch (_: SecurityException) {
@@ -119,7 +119,7 @@ class RecurringReminderWorker(
         dao: com.example.data.local.dao.RecurringTransactionDao,
         schedule: RecurringTransaction
     ): RecurringOccurrence? {
-        dao.getOccurrence(schedule.id, schedule.nextDueDate)?.let { return it }
+        dao.getOccurrence(schedule.id, schedule.nextDueDate, userId)?.let { return it }
 
         val rowId = dao.insertOccurrenceIfNew(
             RecurringOccurrence(
@@ -129,10 +129,10 @@ class RecurringReminderWorker(
             )
         )
         return if (rowId > 0L) {
-            dao.getOccurrenceById(rowId)
+            dao.getOccurrenceById(rowId, schedule.userId)
         } else {
             // The unique (recurring_id, due_date) index protects against concurrent inserts.
-            dao.getOccurrence(schedule.id, schedule.nextDueDate)
+            dao.getOccurrence(schedule.id, schedule.nextDueDate, schedule.userId)
         }
     }
 
