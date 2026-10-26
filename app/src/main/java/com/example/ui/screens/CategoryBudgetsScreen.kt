@@ -121,7 +121,7 @@ fun CategoryBudgetsScreen(
                 .filter { it.date.startsWith(month) && it.category.equals(budget.category, ignoreCase = true) }
                 .sumOf { it.amount.coerceAtLeast(0.0) }
             val effectiveLimit = budget.limitAmount + (carryovers[budget.id] ?: 0.0)
-            runCatching { repository.recordCrossedBudgetAlerts(budget, spent, effectiveLimit) }
+            runCatching { repository.recordCrossedBudgetAlerts(userId, budget, spent, effectiveLimit) }
                 .onFailure { loadError = it.message ?: "Could not save budget alert." }
         }
     }
@@ -202,7 +202,7 @@ fun CategoryBudgetsScreen(
                                     }
                                     IconButton(onClick = {
                                         scope.launch {
-                                            runCatching { repository.deleteBudget(budget) }
+                                            runCatching { repository.deleteBudget(userId, budget) }
                                                 .onFailure { loadError = it.message ?: "Could not delete budget." }
                                         }
                                     }) {
@@ -268,6 +268,7 @@ fun CategoryBudgetsScreen(
                 scope.launch {
                     runCatching {
                         repository.saveBudget(
+                            userId,
                             (editingBudget ?: CategoryBudget(
                                 userId = userId,
                                 category = category,
