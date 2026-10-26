@@ -158,7 +158,7 @@ private fun MappingDropdown(
             modifier = Modifier.menuAnchor().fillMaxWidth(),
             singleLine = true
         )
-        androidx.compose.material3.ExposedDropdownMenu(expanded = expandedField == field, onDismissRequest = { onExpanded(null) }) {
+        ExposedDropdownMenu(expanded = expandedField == field, onDismissRequest = { onExpanded(null) }) {
             DropdownMenuItem(text = { Text("Not mapped") }, onClick = { onSelect(-1); onExpanded(null) })
             headers.forEachIndexed { index, header ->
                 DropdownMenuItem(text = { Text(header.ifBlank { "Column ${index + 1}" }) }, onClick = { onSelect(index); onExpanded(null) })
