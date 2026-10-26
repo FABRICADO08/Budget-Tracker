@@ -110,7 +110,7 @@ fun RecurringTransactionsScreen(
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryMenu) },
                             modifier = Modifier.menuAnchor().fillMaxWidth()
                         )
-                        androidx.compose.material3.ExposedDropdownMenu(expanded = categoryMenu, onDismissRequest = { categoryMenu = false }) {
+                        ExposedDropdownMenu(expanded = categoryMenu, onDismissRequest = { categoryMenu = false }) {
                             listOf("Bills & Utilities", "Housing", "Groceries", "Transportation", "Entertainment", "Health", "Income", "Other").forEach {
                                 DropdownMenuItem(text = { Text(it) }, onClick = { category = it; categoryMenu = false })
                             }
@@ -125,7 +125,7 @@ fun RecurringTransactionsScreen(
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = frequencyMenu) },
                             modifier = Modifier.menuAnchor().fillMaxWidth()
                         )
-                        androidx.compose.material3.ExposedDropdownMenu(expanded = frequencyMenu, onDismissRequest = { frequencyMenu = false }) {
+                        ExposedDropdownMenu(expanded = frequencyMenu, onDismissRequest = { frequencyMenu = false }) {
                             listOf("WEEKLY", "BIWEEKLY", "MONTHLY", "QUARTERLY", "ANNUALLY").forEach {
                                 DropdownMenuItem(text = { Text(it.lowercase().replaceFirstChar { c -> c.uppercase() }) }, onClick = { frequency = it; frequencyMenu = false })
                             }
