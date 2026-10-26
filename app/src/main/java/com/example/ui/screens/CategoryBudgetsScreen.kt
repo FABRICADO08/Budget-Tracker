@@ -62,7 +62,8 @@ import java.util.Locale
 @Composable
 fun CategoryBudgetsScreen(
     database: AppDatabase,
-    transactions: List<Transaction>
+    transactions: List<Transaction>,
+    userId: String
 ) {
     val defaultMonth = remember {
         SimpleDateFormat("yyyy-MM", Locale.ROOT).format(Date())
@@ -74,7 +75,7 @@ fun CategoryBudgetsScreen(
     var carryoverAmounts by remember { mutableStateOf<Map<Long, Double>>(emptyMap()) }
     val scope = rememberCoroutineScope()
     val repository = remember(database) { FinanceRepository(database) }
-    val budgetFlow = remember(database, month) { database.categoryBudgetDao().observeForMonth(month) }
+    val budgetFlow = remember(database, month, userId) { database.categoryBudgetDao().observeForMonth(month, userId) }
     val budgets by budgetFlow.collectAsState(initial = emptyList())
     val money = remember { NumberFormat.getCurrencyInstance(Locale.forLanguageTag("en-ZA")) }
 
@@ -88,7 +89,7 @@ fun CategoryBudgetsScreen(
         }.getOrNull()
         val carryovers = mutableMapOf<Long, Double>()
         budgets.forEach { budget ->
-            val previous = previousMonth?.let { database.categoryBudgetDao().find(budget.category, it) }
+            val previous = previousMonth?.let { database.categoryBudgetDao().find(budget.category, it, userId) }
             if (previous?.carryUnused == true) {
                 val previousSpent = transactions.asSequence()
                     .filter { it.type.equals("expense", ignoreCase = true) }
@@ -252,6 +253,7 @@ fun CategoryBudgetsScreen(
                     runCatching {
                         repository.saveBudget(
                             (editingBudget ?: CategoryBudget(
+                                userId = userId,
                                 category = category,
                                 month = selectedMonth,
                                 limitAmount = limit,
