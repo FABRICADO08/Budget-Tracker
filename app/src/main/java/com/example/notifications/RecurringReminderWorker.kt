@@ -119,7 +119,7 @@ class RecurringReminderWorker(
         dao: com.example.data.local.dao.RecurringTransactionDao,
         schedule: RecurringTransaction
     ): RecurringOccurrence? {
-        dao.getOccurrence(schedule.id, schedule.nextDueDate, userId)?.let { return it }
+        dao.getOccurrence(schedule.id, schedule.nextDueDate, schedule.userId)?.let { return it }
 
         val rowId = dao.insertOccurrenceIfNew(
             RecurringOccurrence(
