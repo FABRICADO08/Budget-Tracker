@@ -14,6 +14,17 @@ interface RecurringTransactionDao {
     @Query("SELECT * FROM recurring_transactions WHERE user_id = :userId ORDER BY is_active DESC, next_due_date ASC")
     fun observeAll(userId: String): Flow<List<RecurringTransaction>>
 
+    @Query("SELECT * FROM recurring_transactions WHERE user_id = :userId ORDER BY created_at, id")
+    suspend fun getAllForUser(userId: String): List<RecurringTransaction>
+
+    @Query("""
+        SELECT o.* FROM recurring_occurrences o
+        INNER JOIN recurring_transactions s ON s.id = o.recurring_id
+        WHERE s.user_id = :userId
+        ORDER BY o.due_date, o.id
+    """)
+    suspend fun getAllOccurrencesForUser(userId: String): List<RecurringOccurrence>
+
     @Query("SELECT * FROM recurring_transactions WHERE user_id = :userId AND is_active = 1 AND next_due_date <= :throughDate ORDER BY next_due_date")
     suspend fun dueThrough(userId: String, throughDate: String): List<RecurringTransaction>
 
