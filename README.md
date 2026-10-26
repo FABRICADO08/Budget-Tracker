@@ -146,10 +146,23 @@ Tests verify:
 - **Recurring notifications:** a unique WorkManager worker checks active schedules every six hours, filters schedules by the signed-in Firebase UID, and records that a due-date occurrence was reminded to avoid repeated notifications. Android 13+ notification permission is respected. WorkManager delivery is best-effort rather than exact-time.
 - **Build checks:** GitHub Actions runs JVM unit tests (including Firebase emulator tests) and assembles a debug APK for pull requests.
 
-Recurring reminders are checked by WorkManager approximately every six hours for the currently signed-in account. Notifications require permission on Android 13+ and may be delayed by Android battery optimization; they are not exact-time alarms. The recurring screen includes a reminder-permission control and an immediate check action. Backup/restore and full per-user isolation of existing Room transaction/loan rows remain follow-up work before treating the app as multi-account secure.
+Recurring reminders are checked by WorkManager approximately every six hours for the currently signed-in account. Notifications require permission on Android 13+ and may be delayed by Android battery optimization; they are not exact-time alarms. The recurring screen includes a reminder-permission control and an immediate check action.
 
 ## Category Budget Planner
 
 The **Budgets** tab lets a signed-in user set a monthly spending limit for common categories and categories already present in their transactions. It calculates current-month expense totals from local Room transactions, displays progress bars and remaining amounts, and flags categories that exceed their limits. Category limits are saved locally under the signed-in Firebase UID, so separate accounts on the same device have separate category-budget preferences.
 
 Monthly and category limits use decimal-string storage to preserve cents. The feature does not alter existing transactions or the Room schema, so it requires no database migration.
+
+
+## Versioned backup and restore
+
+The **Account & Security → Backup & Restore** screen exports a versioned JSON file through Android's Storage Access Framework and restores a selected JSON file only after a preview and explicit choice.
+
+The backup includes the current account's Room transactions, loans, loan repayments, category budgets, budget threshold alerts, recurring schedules and occurrences, the per-account monthly budget cap, plus that account's Firestore profile, expenses, and savings goals. It does not include passwords, Firebase ID tokens, App Check tokens, Gemini credentials, or biometric secrets.
+
+Restore validates the file format, schema version, collection sizes, ownership target, and monetary fields before writing. **Merge without duplicates** preserves existing data and adds records that are not already present. **Replace this account's records** replaces only the signed-in user's local Room rows and Firestore expenses/savings goals/profile; other accounts' rows are left alone. IDs are regenerated/remapped for Room records and foreign-key relationships are reconnected.
+
+Room restoration uses a single database transaction. Firestore data is backed up in memory before restore and the app attempts to roll it back on failure. Because Room and Firestore are separate storage systems, there is no cross-system ACID transaction; if the app reports a rollback failure, retain the JSON file and review the account before trying again.
+
+Treat exported JSON files as sensitive financial records. Store backups somewhere private and avoid sharing them publicly.
