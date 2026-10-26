@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -45,11 +46,12 @@ fun BankCsvImportDialog(
     var descriptionColumn by remember(csvText, parsed) { mutableStateOf(findColumn(parsed?.headers.orEmpty(), listOf("description", "details", "merchant", "payee", "narration"))) }
     var amountColumn by remember(csvText, parsed) { mutableStateOf(findColumn(parsed?.headers.orEmpty(), listOf("amount", "value", "debit", "credit"))) }
     var categoryColumn by remember(csvText, parsed) { mutableStateOf(findColumn(parsed?.headers.orEmpty(), listOf("category", "type of spend"))) }
+    var typeColumn by remember(csvText, parsed) { mutableStateOf(findColumn(parsed?.headers.orEmpty(), listOf("transaction type", "income expense", "direction", "type"))) }
     var decimalComma by remember(csvText) { mutableStateOf(false) }
     var expandedField by remember { mutableStateOf<String?>(null) }
     var errorText by remember(csvText) { mutableStateOf(parsedResult.exceptionOrNull()?.message) }
 
-    val preview = remember(parsed, dateColumn, descriptionColumn, amountColumn, categoryColumn, decimalComma, existingTransactions) {
+    val preview = remember(parsed, dateColumn, descriptionColumn, amountColumn, categoryColumn, typeColumn, decimalComma, existingTransactions) {
         if (parsed == null || dateColumn < 0 || amountColumn < 0) emptyList()
         else parsed.rows.mapNotNull { row ->
             val rawDate = row.values.getOrNull(dateColumn).orEmpty().trim()
@@ -58,7 +60,16 @@ fun BankCsvImportDialog(
             val amount = BankCsvParser.parseAmount(rawAmount, decimalComma)?.takeIf { it != 0.0 } ?: return@mapNotNull null
             val date = normalizeDate(rawDate) ?: return@mapNotNull null
             val category = row.values.getOrNull(categoryColumn).orEmpty().trim().ifBlank { "Other" }
-            val type = if (amount < 0.0) "expense" else "expense"
+            val rawType = row.values.getOrNull(typeColumn).orEmpty().trim().lowercase(Locale.ROOT)
+            val amountHeader = parsed.headers.getOrNull(amountColumn).orEmpty().lowercase(Locale.ROOT)
+            val type = when {
+                rawType.contains("income") || rawType.contains("credit") || rawType.contains("deposit") -> "income"
+                rawType.contains("expense") || rawType.contains("debit") || rawType.contains("withdraw") -> "expense"
+                amountHeader.contains("debit") -> "expense"
+                amountHeader.contains("credit") -> "income"
+                amount < 0.0 -> "expense"
+                else -> "income"
+            }
             Transaction(
                 amount = kotlin.math.abs(amount),
                 category = category,
@@ -90,6 +101,7 @@ fun BankCsvImportDialog(
                     MappingDropdown("Description column", parsed.headers, descriptionColumn, "description", expandedField, { expandedField = it }) { descriptionColumn = it }
                     MappingDropdown("Amount column", parsed.headers, amountColumn, "amount", expandedField, { expandedField = it }) { amountColumn = it }
                     MappingDropdown("Category column (optional)", parsed.headers, categoryColumn, "category", expandedField, { expandedField = it }) { categoryColumn = it }
+                    MappingDropdown("Type column (optional)", parsed.headers, typeColumn, "type", expandedField, { expandedField = it }) { typeColumn = it }
                     TextButton(onClick = { decimalComma = !decimalComma }) {
                         Text(if (decimalComma) "Amount format: decimal comma ✓" else "Amount format: decimal point · tap to change")
                     }
