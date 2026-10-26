@@ -2,9 +2,10 @@ package com.example.data.local.entity
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "loans")
+@Entity(tableName = "loans", indices = [Index(value = ["user_id", "created_at"])])
 data class Loan(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "id")
@@ -32,5 +33,9 @@ data class Loan(
     val repaidDate: String = "",
 
     @ColumnInfo(name = "created_at")
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+
+    /** Firebase UID that owns this locally stored loan. Empty only for unclaimed legacy rows. */
+    @ColumnInfo(name = "user_id", defaultValue = "''")
+    val userId: String = ""
 )
