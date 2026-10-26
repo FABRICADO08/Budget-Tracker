@@ -104,7 +104,7 @@ fun BackupRestoreConfirmationDialog(
                     )
                     Column(modifier = Modifier.weight(1f)) {
                         Text("Merge without duplicates", fontWeight = FontWeight.Medium)
-                        Text("Keep existing records; add backup items not already present.", style = MaterialTheme.typography.bodySmall)
+                        Text("Keep existing records and settings; add backup records not already present.", style = MaterialTheme.typography.bodySmall)
                     }
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
