@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability privately
+    url: https://github.com/FABRICADO08/Budget-Tracker/security/advisories/new
+    about: Do not disclose security vulnerabilities in public issues. Use private vulnerability reporting.
+  - name: Questions and community help
+    url: https://github.com/FABRICADO08/Budget-Tracker/discussions
+    about: Ask general usage questions or discuss ideas with the community.
