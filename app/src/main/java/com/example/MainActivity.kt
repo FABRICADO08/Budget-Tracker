@@ -1162,8 +1162,14 @@ fun TransactionApp(
             existingTransactions = transactions,
             onDismiss = { showCsvImportDialog = false },
             onImport = { imported ->
-                imported.forEach { viewModel.insert(it) }
-                Toast.makeText(context, "Queued ${imported.size} new transactions for import.", Toast.LENGTH_LONG).show()
+                viewModel.insertAll(imported) { succeeded ->
+                    Toast.makeText(
+                        context,
+                        if (succeeded) "Imported ${imported.size} transactions."
+                        else "Import failed. No rows were added; review the statement and try again.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
                 showCsvImportDialog = false
             }
         )
