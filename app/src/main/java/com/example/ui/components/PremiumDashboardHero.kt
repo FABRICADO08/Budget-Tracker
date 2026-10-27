@@ -15,6 +15,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material3.Button
@@ -33,8 +36,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
 
 @Composable
@@ -42,11 +43,13 @@ fun PremiumDashboardHero(
     userName: String,
     monthSpend: Double,
     transactionCount: Int,
+    selectedMonthLabel: String,
+    onPreviousMonth: () -> Unit,
+    onNextMonth: () -> Unit,
     onBudgetsClick: () -> Unit,
     onBillsClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val monthLabel = SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(Date())
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(28.dp),
@@ -80,7 +83,38 @@ fun PremiumDashboardHero(
                     }
                     Icon(Icons.Default.TrendingUp, contentDescription = null, tint = Color(0xFF8EF0C1))
                 }
-                Text(monthLabel, style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.78f))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(
+                        onClick = onPreviousMonth,
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ChevronLeft,
+                            contentDescription = "Previous month",
+                            tint = Color.White
+                        )
+                    }
+                    Text(
+                        selectedMonthLabel,
+                        style = MaterialTheme.typography.titleSmall,
+                        color = Color.White.copy(alpha = 0.9f),
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    IconButton(
+                        onClick = onNextMonth,
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ChevronRight,
+                            contentDescription = "Next month",
+                            tint = Color.White
+                        )
+                    }
+                }
                 Text(
                     String.format(Locale.US, "R%,.2f", monthSpend),
                     style = MaterialTheme.typography.displayMedium,
