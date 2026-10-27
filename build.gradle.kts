@@ -11,14 +11,14 @@ allprojects {
   configurations.all {
     resolutionStrategy {
       force(
-        "org.bouncycastle:bcprov-jdk18on:1.80",
-        "org.bouncycastle:bcpkix-jdk18on:1.80",
-        "io.netty:netty-codec:4.1.118.Final",
-        "io.netty:netty-codec-http:4.1.118.Final",
-        "io.netty:netty-codec-http2:4.1.118.Final",
-        "io.netty:netty-handler:4.1.118.Final",
-        "io.netty:netty-common:4.1.118.Final",
-        "io.netty:netty-handler-proxy:4.1.118.Final",
+        "org.bouncycastle:bcprov-jdk18on:1.85",
+        "org.bouncycastle:bcpkix-jdk18on:1.85",
+        "io.netty:netty-codec:4.1.137.Final",
+        "io.netty:netty-codec-http:4.1.137.Final",
+        "io.netty:netty-codec-http2:4.1.137.Final",
+        "io.netty:netty-handler:4.1.137.Final",
+        "io.netty:netty-common:4.1.137.Final",
+        "io.netty:netty-handler-proxy:4.1.137.Final",
         "org.jdom:jdom2:2.0.6.1",
         "org.bitbucket.b_c:jose4j:0.9.6",
         "org.apache.commons:commons-lang3:3.18.0",
