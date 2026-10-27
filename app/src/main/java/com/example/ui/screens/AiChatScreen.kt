@@ -158,7 +158,7 @@ fun AiChatScreen(
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
                         Text(
-                            text = "Gemini Financial Advisor",
+                            text = "AI financial advisor",
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold
                         )
@@ -171,7 +171,7 @@ fun AiChatScreen(
                             )
                             Spacer(modifier = Modifier.width(3.dp))
                             Text(
-                                text = "Google Search Grounded",
+                                text = "Web-grounded responses",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 11.sp

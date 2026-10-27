@@ -136,6 +136,8 @@ import com.example.ui.auth.AuthScreen
 import com.example.ui.auth.signOut
 import com.example.ui.components.MonthlySpendingBarChart
 import com.example.ui.components.EnterprisePageHeader
+import com.example.ui.components.EnterpriseDialogHeading
+import com.example.ui.components.EnterpriseSectionHeader
 import com.example.ui.components.PremiumDashboardHero
 import com.example.ui.screens.AiChatScreen
 import com.example.ui.screens.BackupRestoreDialog
@@ -272,7 +274,7 @@ fun BiometricLockScreen(
     LaunchedEffect(Unit) {
         BiometricHelper.showBiometricPrompt(
             activity = activity,
-            title = "Unlock BudgetTracker",
+            title = "Unlock Budget Tracker",
             subtitle = "Verify fingerprint to access financial records",
             onSuccess = onUnlocked,
             onError = { err -> errorText = err }
@@ -307,7 +309,7 @@ fun BiometricLockScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "BudgetTracker Locked",
+                text = "Budget Tracker locked",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -670,7 +672,7 @@ fun TransactionApp(
                     ) {
                         Icon(
                             imageVector = Icons.Default.AutoAwesome,
-                            contentDescription = "Gemini Chatbot",
+                            contentDescription = "AI financial advisor",
                             tint = if (selectedTab == 3) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -692,7 +694,7 @@ fun TransactionApp(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.DocumentScanner,
-                                contentDescription = "Scan Till Slip",
+                                contentDescription = "Scan receipt",
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         }
@@ -783,10 +785,10 @@ fun TransactionApp(
                     icon = {
                         Icon(
                             imageVector = Icons.Default.AutoAwesome,
-                            contentDescription = "AI Chatbot"
+                            contentDescription = "AI advisor"
                         )
                     },
-                    label = { Text("AI Chatbot") },
+                    label = { Text("AI advisor") },
                     modifier = Modifier.testTag("tab_ai_advisor")
                 )
                 NavigationBarItem(
@@ -922,12 +924,12 @@ fun TransactionApp(
                                         Spacer(modifier = Modifier.width(10.dp))
                                         Column {
                                             Text(
-                                                text = "Open Full Chartboard",
+                                                text = "View spending insights",
                                                 style = MaterialTheme.typography.titleSmall,
                                                 fontWeight = FontWeight.Bold
                                             )
                                             Text(
-                                                text = "Interactive breakdown, trends & loan recovery",
+                                                text = "Explore spending trends, categories and repayments",
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
@@ -980,12 +982,12 @@ fun TransactionApp(
                                     Spacer(modifier = Modifier.width(10.dp))
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
-                                            text = "Scan Till Slip / Receipt",
+                                            text = "Scan a receipt",
                                             style = MaterialTheme.typography.titleSmall,
                                             fontWeight = FontWeight.Bold
                                         )
                                         Text(
-                                            text = "AI automatically extracts total, store & date",
+                                            text = "Extract total, merchant and date with AI",
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
@@ -1002,28 +1004,24 @@ fun TransactionApp(
 
                         // 4. Section Header with match count
                         item {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "RECENT TRANSACTIONS",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    letterSpacing = 1.sp,
-                                    modifier = Modifier.padding(top = 4.dp)
-                                )
-                                if (searchQuery.isNotBlank()) {
-                                    Text(
-                                        text = "${filteredTransactions.size} found",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        fontWeight = FontWeight.Bold
-                                    )
+                            EnterpriseSectionHeader(
+                                title = "Recent activity",
+                                subtitle = if (searchQuery.isBlank()) {
+                                    "Transactions for $dashboardMonthLabel"
+                                } else {
+                                    "Filtered results for “$searchQuery”"
+                                },
+                                actions = {
+                                    if (searchQuery.isNotBlank()) {
+                                        Text(
+                                            text = "${filteredTransactions.size} found",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
                                 }
-                            }
+                            )
                         }
 
                         // 5. Search Bar to filter entries by category or description
@@ -1187,7 +1185,7 @@ fun TransactionApp(
             confirmButton = {},
             title = {
                 Text(
-                    text = "Scanning Till Slip...",
+                    text = "Scanning receipt...",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
@@ -1205,12 +1203,12 @@ fun TransactionApp(
                     )
                     Column {
                         Text(
-                            text = "Analyzing receipt with Gemini AI",
+                            text = "Analyzing receipt",
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
-                            text = "Detecting total amount (R), merchant, and date...",
+                            text = "Extracting amount, merchant and date...",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -1225,7 +1223,7 @@ fun TransactionApp(
         val errorMsg = (scanState as ScanSlipState.Error).message
         AlertDialog(
             onDismissRequest = { scannerViewModel.resetState() },
-            title = { Text("Slip Scan Notice") },
+            title = { EnterpriseDialogHeading(eyebrow = "RECEIPT SCAN", title = "Receipt scan unsuccessful", subtitle = "Review the message below and try again.") },
             text = { Text(errorMsg) },
             confirmButton = {
                 Button(onClick = { scannerViewModel.resetState() }) {
@@ -1465,7 +1463,7 @@ fun TransactionApp(
     legacyDataStatus?.let { status ->
         AlertDialog(
             onDismissRequest = { /* Make the ownership choice explicit before exposing local records. */ },
-            title = { Text("Existing local finance records") },
+            title = { EnterpriseDialogHeading(eyebrow = "DATA OWNERSHIP", title = "Review local finance records", subtitle = "Choose how unassigned records should be handled.") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
@@ -1551,19 +1549,42 @@ fun ProfileSecurityDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.Security,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Account & Security",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(42.dp)
+                        .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Security,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text = "ACCOUNT & PRIVACY",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp
+                    )
+                    Text(
+                        text = "Account & security",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = "Manage profile, device protection and backup.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         },
         text = {
@@ -2137,16 +2158,11 @@ fun EditBudgetDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.AccountBalanceWallet,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(22.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Set Monthly Budget Target", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            }
+            EnterpriseDialogHeading(
+                eyebrow = "BUDGET SETTINGS",
+                title = "Monthly budget target",
+                subtitle = "Set your planned spending limit in South African rand."
+            )
         },
         text = {
             Column {
@@ -2246,7 +2262,7 @@ fun LoansScreen(
                 ) {
                     Column {
                         Text(
-                            text = "MONEY OWED TO YOU",
+                            text = "OUTSTANDING LOANS",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFFD97706),
@@ -2395,7 +2411,7 @@ fun LoansScreen(
                         ) {
                             Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Record a Loan")
+                            Text("Add loan")
                         }
                     }
                 }
@@ -2580,7 +2596,7 @@ fun LoanListItem(
                         ) {
                             Icon(imageVector = Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Brought Back", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            Text("Mark repaid", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                         }
                     }
                 } else {
@@ -2614,7 +2630,7 @@ private fun LoanRepaymentBalance(database: AppDatabase, loan: Loan, userId: Stri
 }
 
 /**
- * Dialog that prompts the user to select or confirm the exact date when the loan was brought back.
+ * Dialog that records the repayment date for a loan.
  */
 @Composable
 fun MarkRepaidDialog(
@@ -2630,10 +2646,10 @@ fun MarkRepaidDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text(
-                text = "Mark as Brought Back",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
+            EnterpriseDialogHeading(
+                eyebrow = "LOAN STATUS",
+                title = "Mark loan as repaid",
+                subtitle = "Record when the outstanding balance was settled."
             )
         },
         text = {
@@ -2642,13 +2658,13 @@ fun MarkRepaidDialog(
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 Text(
-                    text = "When did ${loan.borrowerName} return the R%.2f loan?".format(loan.amount),
+                    text = "When was the R%.2f loan from ${loan.borrowerName} repaid?".format(loan.amount),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 DatePickerField(
-                    label = "Date Returned",
+                    label = "Repayment date",
                     dateValue = returnDate,
                     onDateSelected = { returnDate = it }
                 )
@@ -2661,7 +2677,7 @@ fun MarkRepaidDialog(
             ) {
                 Icon(imageVector = Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(6.dp))
-                Text("Confirm Date")
+                Text("Confirm repayment")
             }
         },
         dismissButton = {
@@ -2690,10 +2706,10 @@ fun AddLoanDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text(
-                text = "Record Loan Given",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
+            EnterpriseDialogHeading(
+                eyebrow = "LENDING",
+                title = "Record a loan",
+                subtitle = "Capture the borrower, amount and repayment dates."
             )
         },
         text = {
@@ -2819,10 +2835,14 @@ fun AddTransactionDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text(
-                text = if (initialAmount != null && initialAmount > 0) "Confirm Scanned Slip" else "New Expense",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
+            EnterpriseDialogHeading(
+                eyebrow = if (initialAmount != null && initialAmount > 0) "RECEIPT REVIEW" else "TRANSACTION ENTRY",
+                title = if (initialAmount != null && initialAmount > 0) "Review scanned receipt" else "Add expense",
+                subtitle = if (initialAmount != null && initialAmount > 0) {
+                    "Verify the extracted amount, description and date before saving."
+                } else {
+                    "Enter the amount, category and transaction details."
+                }
             )
         },
         text = {
