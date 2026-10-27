@@ -10,11 +10,11 @@ plugins {
 allprojects {
   configurations.all {
     resolutionStrategy {
-      // Align every transitive Netty 4.1 module, not only the modules listed below.
+      // Align every direct and transitive Netty module to the same patched release.
       eachDependency {
-        if (requested.group == "io.netty" && requested.version?.startsWith("4.1.") == true) {
-          useVersion("4.1.139.Final")
-          because("Align Netty modules to the patched 4.1.139.Final security release")
+        if (requested.group == "io.netty") {
+          useVersion("4.2.19.Final")
+          because("Align Netty modules to the patched 4.2.19.Final security release")
         }
       }
       force(
