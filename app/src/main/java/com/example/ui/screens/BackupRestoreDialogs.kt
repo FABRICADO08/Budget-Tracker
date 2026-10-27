@@ -9,6 +9,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -16,8 +17,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import com.example.data.backup.BackupRestoreMode
+import com.example.data.backup.FinanceBackupCryptography
 import com.example.data.backup.FinanceBackupPreview
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -37,11 +42,11 @@ fun BackupRestoreDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    "Create a versioned JSON file or restore one through Android's file picker. " +
+                    "Create a password-encrypted, versioned JSON file or restore one through Android's file picker. " +
                         "The backup includes this account's Room transactions, category budgets and alerts, recurring schedules and occurrence history, loans and repayments, monthly budget cap, Firestore expenses, savings goals, and profile settings."
                 )
                 Text(
-                    "This file contains sensitive financial information. Store it somewhere private. Authentication tokens, passwords and API keys are never exported.",
+                    "New exports are encrypted before they leave the app. Keep the backup password safe; it cannot be recovered. Older unencrypted backups can still be restored. Authentication tokens, passwords and API keys are never exported.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -56,7 +61,7 @@ fun BackupRestoreDialog(
                     onClick = onCreateBackup,
                     enabled = !busy,
                     modifier = Modifier.fillMaxWidth()
-                ) { Text("Create JSON backup") }
+                ) { Text("Create encrypted backup") }
                 OutlinedButton(
                     onClick = onSelectBackup,
                     enabled = !busy,
@@ -153,5 +158,107 @@ fun BackupRestoreConfirmationDialog(
             }
         },
         dismissButton = { TextButton(onClick = onCancel, enabled = !busy) { Text("Cancel") } }
+    )
+}
+
+
+enum class BackupPasswordMode { CREATE, RESTORE }
+
+@Composable
+fun BackupPasswordDialog(
+    mode: BackupPasswordMode,
+    busy: Boolean,
+    error: String?,
+    onConfirm: (CharArray) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var password by androidx.compose.runtime.remember(mode) { androidx.compose.runtime.mutableStateOf("") }
+    var confirmation by androidx.compose.runtime.remember(mode) { androidx.compose.runtime.mutableStateOf("") }
+    val passwordLongEnough = password.length >= FinanceBackupCryptography.MIN_PASSWORD_LENGTH
+    val matches = mode == BackupPasswordMode.RESTORE || password == confirmation
+    val canSubmit = !busy && passwordLongEnough && matches
+
+    AlertDialog(
+        onDismissRequest = { if (!busy) onDismiss() },
+        title = {
+            Text(if (mode == BackupPasswordMode.CREATE) "Protect your backup" else "Unlock backup")
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    if (mode == BackupPasswordMode.CREATE) {
+                        "Choose a password with at least ${FinanceBackupCryptography.MIN_PASSWORD_LENGTH} characters. Financial data will be encrypted with AES-GCM before the file is saved."
+                    } else {
+                        "Enter the password that was used when this encrypted backup was created. Your data is not changed until the decrypted file passes validation and you confirm the restore."
+                    },
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    modifier = androidx.compose.ui.Modifier.fillMaxWidth(),
+                    label = { Text("Backup password") },
+                    singleLine = true,
+                    enabled = !busy,
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+                )
+                if (mode == BackupPasswordMode.CREATE) {
+                    OutlinedTextField(
+                        value = confirmation,
+                        onValueChange = { confirmation = it },
+                        modifier = androidx.compose.ui.Modifier.fillMaxWidth(),
+                        label = { Text("Confirm password") },
+                        singleLine = true,
+                        enabled = !busy,
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        isError = confirmation.isNotEmpty() && !matches
+                    )
+                    Text(
+                        "The app does not store or recover this password. Keep it separately from the backup file.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    if (password.isNotEmpty() && !passwordLongEnough) {
+                        Text(
+                            "Use at least ${FinanceBackupCryptography.MIN_PASSWORD_LENGTH} characters.",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    } else if (confirmation.isNotEmpty() && !matches) {
+                        Text("The passwords do not match.", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+                error?.let {
+                    Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                }
+                if (busy) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        CircularProgressIndicator()
+                        Text(if (mode == BackupPasswordMode.CREATE) "Encrypting backup…" else "Decrypting and validating…")
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    val passwordChars = password.toCharArray()
+                    password = ""
+                    confirmation = ""
+                    onConfirm(passwordChars)
+                },
+                enabled = canSubmit
+            ) {
+                Text(if (mode == BackupPasswordMode.CREATE) "Encrypt backup" else "Unlock backup")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !busy) { Text("Cancel") }
+        }
     )
 }
