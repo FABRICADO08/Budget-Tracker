@@ -102,6 +102,22 @@ fun AuthScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
+            Surface(
+                color = MaterialTheme.colorScheme.primaryContainer,
+                shape = RoundedCornerShape(50.dp)
+            ) {
+                Text(
+                    text = "SECURE PERSONAL FINANCE",
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.1.sp
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             // Hero Illustration
             Card(
                 modifier = Modifier
@@ -140,7 +156,7 @@ fun AuthScreen(
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
-                    text = "BudgetTracker",
+                    text = "Budget Tracker",
                     style = MaterialTheme.typography.displayMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -149,7 +165,7 @@ fun AuthScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Take control of your daily spending and achieve your savings dreams with real-time cloud tracking.",
+                text = "A clear, secure view of your spending, budgets and savings goals — all in one place.",
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

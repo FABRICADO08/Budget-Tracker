@@ -83,6 +83,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -134,6 +135,7 @@ import com.example.data.local.entity.Transaction
 import com.example.ui.auth.AuthScreen
 import com.example.ui.auth.signOut
 import com.example.ui.components.MonthlySpendingBarChart
+import com.example.ui.components.EnterprisePageHeader
 import com.example.ui.components.PremiumDashboardHero
 import com.example.ui.screens.AiChatScreen
 import com.example.ui.screens.BackupRestoreDialog
@@ -400,6 +402,13 @@ fun TransactionApp(
     }
 
     var selectedTab by remember { mutableIntStateOf(0) } // Expenses, Analytics, Loans, AI, Budgets, Recurring bills
+    val navigationItemColors = NavigationBarItemDefaults.colors(
+        selectedIconColor = MaterialTheme.colorScheme.primary,
+        selectedTextColor = MaterialTheme.colorScheme.primary,
+        indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+    )
     var dashboardMonthYm by remember { mutableStateOf(SimpleDateFormat("yyyy-MM", Locale.ROOT).format(Date())) }
     var aiPendingPrompt by remember { mutableStateOf<String?>(null) }
     var showAddExpenseDialog by remember { mutableStateOf(false) }
@@ -599,8 +608,8 @@ fun TransactionApp(
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                    titleContentColor = MaterialTheme.colorScheme.onBackground
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
                 ),
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -628,24 +637,24 @@ fun TransactionApp(
                         Column {
                             Text(
                                 text = when (selectedTab) {
-                                    0 -> "Expense Tracker"
-                                    1 -> "Financial Chartboard"
-                                    2 -> "Loans Given"
-                                    4 -> "Category Budgets"
-                                    5 -> "Recurring Bills"
-                                    else -> "Gemini AI Chatbot"
+                                    0 -> "Spending overview"
+                                    1 -> "Financial insights"
+                                    2 -> "Loans & repayments"
+                                    4 -> "Category budgets"
+                                    5 -> "Recurring payments"
+                                    else -> "AI financial advisor"
                                 },
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
                                 text = when (selectedTab) {
-                                    0 -> "Total: R%.2f".format(totalExpense)
-                                    1 -> "Monthly Spending Analytics"
-                                    2 -> "Owed: R%.2f".format(totalPendingLoans)
-                                    4 -> "Plan spending by category"
-                                    5 -> "Upcoming payments & income"
-                                    else -> "Google Search Grounded"
+                                    0 -> "Monthly spend: R%.2f".format(totalExpense)
+                                    1 -> "Trends, categories & cash flow"
+                                    2 -> "Outstanding: R%.2f".format(totalPendingLoans)
+                                    4 -> "Manage limits and carryovers"
+                                    5 -> "Upcoming bills and income"
+                                    else -> "Personal finance guidance"
                                 },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -727,10 +736,11 @@ fun TransactionApp(
             )
         },
         bottomBar = {
-            NavigationBar(containerColor = MaterialTheme.colorScheme.surface, tonalElevation = 6.dp) {
+            NavigationBar(containerColor = MaterialTheme.colorScheme.surface, tonalElevation = 0.dp) {
                 NavigationBarItem(
                     selected = selectedTab == 0,
                     onClick = { selectedTab = 0 },
+                    colors = navigationItemColors,
                     icon = {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ReceiptLong,
@@ -743,6 +753,7 @@ fun TransactionApp(
                 NavigationBarItem(
                     selected = selectedTab == 1,
                     onClick = { selectedTab = 1 },
+                    colors = navigationItemColors,
                     icon = {
                         Icon(
                             imageVector = Icons.Default.Insights,
@@ -755,6 +766,7 @@ fun TransactionApp(
                 NavigationBarItem(
                     selected = selectedTab == 2,
                     onClick = { selectedTab = 2 },
+                    colors = navigationItemColors,
                     icon = {
                         Icon(
                             imageVector = Icons.Default.Handshake,
@@ -767,6 +779,7 @@ fun TransactionApp(
                 NavigationBarItem(
                     selected = selectedTab == 3,
                     onClick = { selectedTab = 3 },
+                    colors = navigationItemColors,
                     icon = {
                         Icon(
                             imageVector = Icons.Default.AutoAwesome,
@@ -779,6 +792,7 @@ fun TransactionApp(
                 NavigationBarItem(
                     selected = selectedTab == 4,
                     onClick = { selectedTab = 4 },
+                    colors = navigationItemColors,
                     icon = {
                         Icon(
                             imageVector = Icons.Default.AccountBalanceWallet,
@@ -791,6 +805,7 @@ fun TransactionApp(
                 NavigationBarItem(
                     selected = selectedTab == 5,
                     onClick = { selectedTab = 5 },
+                    colors = navigationItemColors,
                     icon = { Icon(Icons.Default.CalendarMonth, contentDescription = "Recurring bills") },
                     label = { Text("Bills") },
                     modifier = Modifier.testTag("tab_recurring_bills")
@@ -2210,6 +2225,12 @@ fun LoansScreen(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        EnterprisePageHeader(
+            eyebrow = "LENDING",
+            title = "Loan portfolio",
+            subtitle = "Outstanding balances, repayments and recovered funds."
+        )
+
         // Loans Summary Card
         Card(
             modifier = Modifier.fillMaxWidth(),

@@ -36,6 +36,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import java.util.Locale
 
 @Composable
@@ -52,7 +53,7 @@ fun PremiumDashboardHero(
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(28.dp),
+        shape = MaterialTheme.shapes.extraLarge,
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
         elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
     ) {
@@ -78,7 +79,7 @@ fun PremiumDashboardHero(
                     }
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
-                        Text("GOOD TO SEE YOU", style = MaterialTheme.typography.labelSmall, color = Color(0xFFB7F7D8), fontWeight = FontWeight.Bold)
+                        Text("MONTHLY OVERVIEW", style = MaterialTheme.typography.labelSmall, color = Color(0xFFB7F7D8), fontWeight = FontWeight.Bold, letterSpacing = 1.1.sp)
                         Text("Hi, ${userName.ifBlank { "there" }}", style = MaterialTheme.typography.titleLarge, color = Color.White, fontWeight = FontWeight.Bold)
                     }
                     Icon(Icons.AutoMirrored.Filled.TrendingUp, contentDescription = null, tint = Color(0xFF8EF0C1))
@@ -121,7 +122,7 @@ fun PremiumDashboardHero(
                     color = Color.White,
                     fontWeight = FontWeight.Bold
                 )
-                Text("spent this month", style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.82f))
+                Text("Total spend this month", style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.82f))
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Surface(color = Color.White.copy(alpha = 0.12f), shape = RoundedCornerShape(14.dp)) {
                         Row(Modifier.padding(horizontal = 12.dp, vertical = 9.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -139,12 +140,12 @@ fun PremiumDashboardHero(
                     ) {
                         Icon(Icons.Default.AccountBalanceWallet, contentDescription = null)
                         Spacer(Modifier.width(6.dp))
-                        Text("My budgets", fontWeight = FontWeight.SemiBold)
+                        Text("Manage budgets", fontWeight = FontWeight.SemiBold)
                     }
                     TextButton(onClick = onBillsClick, colors = ButtonDefaults.textButtonColors(contentColor = Color.White)) {
                         Icon(Icons.Default.CalendarMonth, contentDescription = null)
                         Spacer(Modifier.width(6.dp))
-                        Text("Upcoming bills")
+                        Text("Upcoming payments")
                     }
                 }
             }
