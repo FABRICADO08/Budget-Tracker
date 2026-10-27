@@ -178,8 +178,7 @@ object FinanceBackupCryptography {
         }
     }
 
-    private fun preferredKdf(): String =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) KDF_SHA256 else KDF_SHA1
+    private fun preferredKdf(): String = KDF_SHA256
 
     private fun iterationsFor(kdf: String): Int = when (kdf) {
         KDF_SHA256 -> SHA256_ITERATIONS
