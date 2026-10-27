@@ -110,6 +110,10 @@ class FinanceBackupManager(
         return encoded
     }
 
+    /** Creates the user-facing export. The caller must supply and then discard the password. */
+    suspend fun createEncryptedBackup(userId: String, password: CharArray): String =
+        FinanceBackupCryptography.encrypt(createBackup(userId), password)
+
     /** Parses and validates the entire file before any database or cloud data is changed. */
     fun inspectBackup(json: String): FinanceBackupPreview {
         val parsed = parseAndValidate(json)
