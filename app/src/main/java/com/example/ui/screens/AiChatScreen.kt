@@ -181,6 +181,7 @@ fun AiChatScreen(
 
                 IconButton(
                     onClick = { viewModel.clearHistory() },
+                    enabled = !isLoading,
                     modifier = Modifier.size(32.dp)
                 ) {
                     Icon(
