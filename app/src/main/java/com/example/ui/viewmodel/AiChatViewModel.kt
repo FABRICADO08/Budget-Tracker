@@ -8,6 +8,7 @@ import com.google.firebase.ai.ai
 import com.google.firebase.ai.type.Tool
 import com.google.firebase.ai.type.content
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -68,9 +69,28 @@ class AiChatViewModel : ViewModel() {
 
     /** The caller must provide an aggregate-only summary scoped to the authenticated user. */
     fun setFinancialContext(summary: String?) {
+        val hadContext = _financialContext.value != null
+        val wasSharing = _includeFinancialContext.value
         _financialContext.value = summary?.trim()?.take(4_000)?.takeIf { it.isNotBlank() }
         _hasFinancialContext.value = _financialContext.value != null
-        if (!_hasFinancialContext.value) _includeFinancialContext.value = false
+        if (!_hasFinancialContext.value) {
+            _includeFinancialContext.value = false
+            if (hadContext && wasSharing) {
+                generationJob?.cancel()
+                generationJob = null
+                resetConversation("Your local transaction summary is no longer available. Financial data sharing was turned off.")
+            }
+        }
+    }
+
+    /** Called before sign-out so private financial context is not retained in the Activity ViewModelStore. */
+    fun clearFinancialContext() {
+        generationJob?.cancel()
+        generationJob = null
+        _financialContext.value = null
+        _hasFinancialContext.value = false
+        _includeFinancialContext.value = false
+        resetConversation("Signed out. Financial summary sharing has been cleared.")
     }
 
     /** Changing data-sharing consent starts a fresh conversation to clear the prior model context. */
@@ -128,6 +148,7 @@ class AiChatViewModel : ViewModel() {
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+    private var generationJob: Job? = null
 
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
@@ -142,7 +163,7 @@ class AiChatViewModel : ViewModel() {
         _isLoading.value = true
         _errorMessage.value = null
 
-        viewModelScope.launch {
+        generationJob = viewModelScope.launch {
             try {
                 val response = withTimeout(60_000L) {
                     chatSession.sendMessage(prompt)
