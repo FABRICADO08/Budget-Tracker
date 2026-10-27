@@ -110,9 +110,31 @@ class FinanceBackupManager(
         return encoded
     }
 
-    /** Creates the user-facing export. The caller must supply and then discard the password. */
+    /** Creates the user-facing export off the UI thread. The password is discarded on exit. */
     suspend fun createEncryptedBackup(userId: String, password: CharArray): String =
-        FinanceBackupCryptography.encrypt(createBackup(userId), password)
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                FinanceBackupCryptography.encrypt(createBackup(userId), password)
+            } finally {
+                password.fill(0.toChar())
+            }
+        }
+
+    /** Decrypts a selected file away from the UI thread before it is inspected. */
+    suspend fun decryptEncryptedBackup(envelope: String, password: CharArray): String =
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+            try {
+                FinanceBackupCryptography.decrypt(envelope, password)
+            } finally {
+                password.fill(0.toChar())
+            }
+        }
+
+    /** Large backup files are parsed off the UI thread. No data is written by this operation. */
+    suspend fun inspectBackupOffMainThread(json: String): FinanceBackupPreview =
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+            inspectBackup(json)
+        }
 
     /** Parses and validates the entire file before any database or cloud data is changed. */
     fun inspectBackup(json: String): FinanceBackupPreview {
@@ -138,7 +160,9 @@ class FinanceBackupManager(
         mode: BackupRestoreMode
     ): FinanceBackupResult {
         requireCurrentUser(currentUserId)
-        val backup = parseAndValidate(json) // Complete validation happens before the first write.
+        val backup = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+            parseAndValidate(json)
+        } // Complete validation happens before the first write.
         val priorCloudSnapshot = budgetRepository.exportBackupData(currentUserId)
         val priorMonthlyBudgetCap = BudgetPreferences.getMonthlyBudgetCap(context, currentUserId)
 
