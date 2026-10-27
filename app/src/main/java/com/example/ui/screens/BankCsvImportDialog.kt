@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.ui.components.EnterpriseDialogHeading
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -162,10 +164,10 @@ fun BankCsvImportDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text(
-                "Import bank statement",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
+            EnterpriseDialogHeading(
+                eyebrow = "IMPORT DATA",
+                title = "Import bank statement",
+                subtitle = "Map columns, review proposed transactions and confirm before saving."
             )
         },
         text = {
@@ -173,7 +175,7 @@ fun BankCsvImportDialog(
                 modifier = Modifier.heightIn(max = 520.dp).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Text("Check the column mapping, review the proposed transactions and exclude any rows you do not want. Nothing is saved until you confirm the import.")
+                Text("Select only the rows you want to add. Nothing is saved until you confirm the import.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 if (parsed == null) {
                     Text(errorText ?: "This CSV could not be read.", color = MaterialTheme.colorScheme.error)
                 } else {

@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.ui.components.EnterprisePageHeader
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -124,11 +126,10 @@ fun CategoryBudgetsScreen(
             modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("Category budgets", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            Text(
-                "Set monthly limits and track real expenses against each category.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+            EnterprisePageHeader(
+                eyebrow = "PLAN",
+                title = "Budget controls",
+                subtitle = "Set category limits, review carryovers and monitor monthly spending."
             )
             OutlinedTextField(
                 value = month,

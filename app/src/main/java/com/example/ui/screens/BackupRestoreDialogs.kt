@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.ui.components.EnterpriseDialogHeading
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -42,7 +44,7 @@ fun BackupRestoreDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Backup & restore") },
+        title = { EnterpriseDialogHeading(eyebrow = "DATA MANAGEMENT", title = "Backup & restore", subtitle = "Create an encrypted backup or restore a validated file.") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
@@ -92,7 +94,7 @@ fun BackupRestoreConfirmationDialog(
         .format(Date(preview.createdAtMillis))
     AlertDialog(
         onDismissRequest = { if (!busy) onCancel() },
-        title = { Text("Review backup before restoring") },
+        title = { EnterpriseDialogHeading(eyebrow = "RESTORE REVIEW", title = "Review backup before restoring", subtitle = "Confirm the source, destination and how records will be applied.") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
                 Text("Created: $date")
@@ -185,7 +187,11 @@ fun BackupPasswordDialog(
     AlertDialog(
         onDismissRequest = { if (!busy) onDismiss() },
         title = {
-            Text(if (mode == BackupPasswordMode.CREATE) "Protect your backup" else "Unlock backup")
+            EnterpriseDialogHeading(
+                eyebrow = "ENCRYPTION",
+                title = if (mode == BackupPasswordMode.CREATE) "Protect your backup" else "Unlock backup",
+                subtitle = if (mode == BackupPasswordMode.CREATE) "Set a password before the file is written." else "Enter the password used for this encrypted file."
+            )
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {

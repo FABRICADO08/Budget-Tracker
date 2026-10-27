@@ -23,7 +23,8 @@ jobs:
         uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         with:
           distribution: temurin
-          java-version: "21"
+          java-version: latest
+          java-package: jdk
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4
@@ -42,7 +43,7 @@ jobs:
         with:
           gradle-version: "9.8.2"
 
-      - name: Ensure Java 21 is first on PATH
+      - name: Ensure selected JDK is first on PATH
         run: |
           echo "$JAVA_HOME/bin" >> "$GITHUB_PATH"
           "$JAVA_HOME/bin/java" -version

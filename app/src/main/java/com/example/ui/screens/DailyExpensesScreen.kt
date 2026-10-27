@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.ui.components.EnterprisePageHeader
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -128,6 +130,14 @@ fun DailyExpensesScreen(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        item {
+            EnterprisePageHeader(
+                eyebrow = "TRANSACTIONS",
+                title = "Daily expenses",
+                subtitle = "Review activity by date, filter categories and keep spending on track."
+            )
+        }
+
         // 1. Date Header & Navigation
         item {
             DateNavigationCard(

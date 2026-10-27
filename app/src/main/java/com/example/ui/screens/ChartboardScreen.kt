@@ -223,12 +223,12 @@ fun ChartboardScreen(
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
                                 Text(
-                                    text = "Financial Chartboard",
+                                    text = "Spending insights",
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    text = "Monthly Spending Patterns & Analytics",
+                                    text = "Monthly trends, category mix and lending performance",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )

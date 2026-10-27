@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.ui.components.EnterpriseDialogHeading
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -45,10 +47,16 @@ fun RecordLoanRepaymentDialog(
 
     AlertDialog(
         onDismissRequest = { if (!saving) onDismiss() },
-        title = { Text("Record repayment") },
+        title = {
+            EnterpriseDialogHeading(
+                eyebrow = "LENDING",
+                title = "Record repayment",
+                subtitle = "Capture a full or partial payment against this loan."
+            )
+        },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("Record a full or partial repayment from ${loan.borrowerName}.")
+                Text("Borrower: ${loan.borrowerName}", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
                 OutlinedTextField(
                     value = amount,
                     onValueChange = { if (it.length <= 12 && it.matches(Regex("^\\d{0,9}(\\.\\d{0,2})?$"))) amount = it },

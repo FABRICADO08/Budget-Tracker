@@ -117,7 +117,7 @@ fun MainBudgetScreen(
                         }
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            text = "BudgetTracker",
+                            text = "Budget Tracker",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
@@ -146,7 +146,8 @@ fun MainBudgetScreen(
         bottomBar = {
             NavigationBar(
                 modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars),
-                containerColor = MaterialTheme.colorScheme.surface
+                containerColor = MaterialTheme.colorScheme.surface,
+                tonalElevation = 0.dp
             ) {
                 NavigationBarItem(
                     selected = currentTab == 0,
