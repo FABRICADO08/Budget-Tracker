@@ -105,6 +105,69 @@ class FinanceRoomTest {
     }
 
     @Test
+    fun loanRecoverySummaryAccountsForPartialRepaymentsAndScopesOwners() = runBlocking {
+        val partiallyRepaidLoan = database.loanDao().insert(
+            Loan(
+                borrowerName = "Partial borrower",
+                amount = 1000.0,
+                lentDate = "2026-09-01",
+                dueDate = "2026-10-01",
+                userId = "account-a"
+            )
+        )
+        database.loanRepaymentDao().insert(
+            LoanRepayment(
+                loanId = partiallyRepaidLoan,
+                amount = 250.0,
+                paidDate = "2026-09-15"
+            )
+        )
+        database.loanRepaymentDao().insert(
+            LoanRepayment(
+                loanId = partiallyRepaidLoan,
+                amount = 300.0,
+                paidDate = "2026-09-25"
+            )
+        )
+
+        // Legacy-style manual full repayment has no repayment ledger rows, but is still fully recovered.
+        database.loanDao().insert(
+            Loan(
+                borrowerName = "Manually marked repaid",
+                amount = 500.0,
+                lentDate = "2026-08-01",
+                isRepaid = true,
+                userId = "account-a"
+            )
+        )
+        val otherAccountLoan = database.loanDao().insert(
+            Loan(
+                borrowerName = "Different account",
+                amount = 700.0,
+                lentDate = "2026-10-01",
+                userId = "account-b"
+            )
+        )
+        database.loanRepaymentDao().insert(
+            LoanRepayment(
+                loanId = otherAccountLoan,
+                amount = 200.0,
+                paidDate = "2026-10-20"
+            )
+        )
+
+        val accountA = database.loanDao().observeRecoverySummaryForUser("account-a").first()
+        assertEquals(1500.0, accountA.totalPrincipal, 0.001)
+        assertEquals(1050.0, accountA.totalRecovered, 0.001)
+        assertEquals(450.0, accountA.totalOutstanding, 0.001)
+
+        val accountB = database.loanDao().observeRecoverySummaryForUser("account-b").first()
+        assertEquals(700.0, accountB.totalPrincipal, 0.001)
+        assertEquals(200.0, accountB.totalRecovered, 0.001)
+        assertEquals(500.0, accountB.totalOutstanding, 0.001)
+    }
+
+    @Test
     fun migrationFromVersionTwoPreservesExistingFinancialRecords() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val name = "budget_tracker_migration_test.db"
