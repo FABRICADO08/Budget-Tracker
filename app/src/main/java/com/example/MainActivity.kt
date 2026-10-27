@@ -229,6 +229,7 @@ class MainActivity : FragmentActivity() {
                             aiChatViewModel = aiChatViewModel,
                             currentUser = signedInUser,
                             onSignOut = {
+                                aiChatViewModel.clearFinancialContext()
                                 isUnlocked = false
                                 currentUser = null
                             }
