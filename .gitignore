@@ -28,3 +28,6 @@ debug.keystore
 *.pem
 *.key
 secrets.properties
+
+# Local JavaScript test dependencies.
+node_modules/
