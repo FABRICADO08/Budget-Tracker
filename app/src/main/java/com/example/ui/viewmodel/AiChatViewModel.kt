@@ -55,8 +55,9 @@ class AiChatViewModel : ViewModel() {
         )
     }
 
-    // Resettable so Clear History and a privacy-setting change also clear Gemini conversation context.
-    private var chatSession = chatModel.startChat()
+    // A resettable lazy holder avoids initializing Firebase AI before the advisor is first used.
+    private var chatSessionDelegate = lazy { chatModel.startChat() }
+    private val chatSession get() = chatSessionDelegate.value
 
     private val _financialContext = MutableStateFlow<String?>(null)
     private val _hasFinancialContext = MutableStateFlow(false)
@@ -104,7 +105,7 @@ class AiChatViewModel : ViewModel() {
     }
 
     private fun resetConversation(advisorNotice: String? = null) {
-        chatSession = chatModel.startChat()
+        chatSessionDelegate = lazy { chatModel.startChat() }
         _messages.value = listOf(
             ChatMessage(
                 sender = MessageSender.ADVISOR,
