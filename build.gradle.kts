@@ -6,3 +6,24 @@ plugins {
   alias(libs.plugins.secrets) apply false
   alias(libs.plugins.google.services) apply false
 }
+
+allprojects {
+  configurations.all {
+    resolutionStrategy {
+      force(
+        "org.bouncycastle:bcprov-jdk18on:1.80",
+        "org.bouncycastle:bcpkix-jdk18on:1.80",
+        "io.netty:netty-codec:4.1.118.Final",
+        "io.netty:netty-codec-http:4.1.118.Final",
+        "io.netty:netty-codec-http2:4.1.118.Final",
+        "io.netty:netty-handler:4.1.118.Final",
+        "io.netty:netty-common:4.1.118.Final",
+        "io.netty:netty-handler-proxy:4.1.118.Final",
+        "org.jdom:jdom2:2.0.6.1",
+        "org.bitbucket.b_c:jose4j:0.9.6",
+        "org.apache.commons:commons-lang3:3.18.0",
+        "org.apache.httpcomponents:httpclient:4.5.14"
+      )
+    }
+  }
+}

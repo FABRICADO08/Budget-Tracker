@@ -89,6 +89,21 @@ googleServices { missingGoogleServicesStrategy = MissingGoogleServicesStrategy.W
 // Some unused dependencies are commented out below instead of being removed.
 // This makes it easy to add them back in the future if needed.
 dependencies {
+  constraints {
+    implementation(libs.bouncycastle.bcprov) { because("Fix CVE-2024-29857, CVE-2024-30171, CVE-2024-30172") }
+    implementation(libs.bouncycastle.bcpkix) { because("Fix CVE-2024-34447") }
+    implementation(libs.netty.codec) { because("Fix decoder DoS") }
+    implementation(libs.netty.codec.http) { because("Fix HTTP/1.1 request smuggling and parsing DoS") }
+    implementation(libs.netty.codec.http2) { because("Fix HTTP/2 CONTINUATION and Rapid Reset vulnerabilities") }
+    implementation(libs.netty.handler) { because("Fix SNI routing bypass and SSL validation vulnerabilities") }
+    implementation(libs.netty.common) { because("Fix DoS vulnerabilities") }
+    implementation(libs.netty.handler.proxy) { because("Fix HTTP header injection") }
+    implementation(libs.jdom2) { because("Fix XXE injection CVE-2021-33813") }
+    implementation(libs.jose4j) { because("Fix DoS via compressed JWE CVE-2023-31582") }
+    implementation(libs.commons.lang3) { because("Fix uncontrolled recursion CVE-2024-57541") }
+    implementation(libs.httpclient) { because("Fix CVE-2020-13956") }
+  }
+
   implementation(platform(libs.androidx.compose.bom))
   implementation(platform(libs.firebase.bom))
   // implementation(libs.accompanist.permissions)
