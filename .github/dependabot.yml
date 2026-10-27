@@ -1,9 +1,39 @@
 version: 2
 updates:
+  # Monitor and enforce updates for Gradle dependencies
   - package-ecosystem: "gradle"
     directory: "/"
     schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 10
+      interval: "daily"
+      time: "04:00"
+      timezone: "Africa/Johannesburg"
+    open-pull-requests-limit: 15
+    labels:
+      - "dependencies"
+      - "automated"
+      - "security"
     commit-message:
-      prefix: "deps"
+      prefix: "deps(gradle)"
+      include: "scope"
+    groups:
+      patch-and-minor:
+        applies-to: version-updates
+        update-types:
+          - "patch"
+          - "minor"
+
+  # Monitor and enforce updates for GitHub Actions workflows
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      time: "04:00"
+      timezone: "Africa/Johannesburg"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "automated"
+      - "ci"
+    commit-message:
+      prefix: "deps(actions)"
+      include: "scope"
