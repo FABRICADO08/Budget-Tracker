@@ -19,3 +19,12 @@ local.properties
 .env
 debug.keystore
 *-debug.log
+
+# Local Firebase configuration and signing material (never commit credentials).
+**/google-services.json
+*.jks
+*.keystore
+*.p12
+*.pem
+*.key
+secrets.properties
