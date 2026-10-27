@@ -72,6 +72,36 @@ class TransactionViewModel(
         }
     }
 
+    /**
+     * Imports a reviewed batch through Room's list insert, so the database applies it atomically
+     * rather than leaving a partial import if one insert fails. Ownership is always the session UID.
+     */
+    fun insertAll(
+        items: List<Transaction>,
+        onComplete: ((Boolean) -> Unit)? = null
+    ) {
+        if (userId.isBlank() || items.isEmpty()) {
+            onComplete?.invoke(false)
+            return
+        }
+        val ownedItems = items.map { item ->
+            item.copy(userId = userId)
+        }
+        if (ownedItems.any {
+                !it.amount.isFinite() || it.amount <= 0.0 ||
+                    it.category.isBlank() || it.description.isBlank() ||
+                    it.date.isBlank() || it.type !in setOf("income", "expense")
+            }
+        ) {
+            onComplete?.invoke(false)
+            return
+        }
+        viewModelScope.launch {
+            val result = runCatching { transactionDao.insertAll(ownedItems) }
+            onComplete?.invoke(result.isSuccess)
+        }
+    }
+
     fun updateTransaction(transaction: Transaction) {
         if (userId.isBlank() || transaction.amount <= 0.0 || !transaction.amount.isFinite()) return
         viewModelScope.launch {
