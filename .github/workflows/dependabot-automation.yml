@@ -3,6 +3,9 @@ name: "Dependabot Auto-Enforce & Merge"
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches:
+      - main
 
 permissions:
   contents: write
@@ -11,10 +14,25 @@ permissions:
   issues: write
 
 jobs:
+  auto-rebase-on-main-push:
+    name: "Rebase Open Dependabot PRs"
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    steps:
+      - name: Rebase open Dependabot PRs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          open_prs=$(gh pr list --author "app/dependabot" --state open --json number --jq '.[].number' || echo "")
+          for pr in $open_prs; do
+            echo "Requesting rebase for Dependabot PR #$pr..."
+            gh pr comment "$pr" --body "@dependabot rebase" || true
+          done
+
   dependabot-automation:
     name: "Enforce Dependabot Update"
     runs-on: ubuntu-latest
-    if: github.actor == 'dependabot[bot]'
+    if: github.event_name == 'pull_request' && github.actor == 'dependabot[bot]'
     steps:
       - name: Fetch Dependabot metadata
         id: metadata
