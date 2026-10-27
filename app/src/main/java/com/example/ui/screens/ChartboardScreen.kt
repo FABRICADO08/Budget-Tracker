@@ -71,6 +71,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.local.entity.Loan
+import com.example.data.local.dao.LoanRecoverySummary
 import com.example.data.local.entity.Transaction
 import com.example.ui.theme.ExpenseRed
 import com.example.ui.theme.IncomeGreen
@@ -94,7 +95,8 @@ fun ChartboardScreen(
     transactions: List<Transaction>,
     loans: List<Loan>,
     onAskAiAdvisor: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    loanRecoverySummary: LoanRecoverySummary? = null
 ) {
     var timeframeMonths by remember { mutableIntStateOf(6) } // 3, 6, or 12
     var selectedMonthYm by remember { mutableStateOf<String?>(null) }
@@ -178,11 +180,18 @@ fun ChartboardScreen(
     }
     val netCashflow = totalAllIncome - totalAllExpense
 
-    // Loans metrics
-    val totalLent = remember(loans) { loans.sumOf { it.amount } }
-    val totalRecovered = remember(loans) { loans.filter { it.isRepaid }.sumOf { it.amount } }
-    val totalPending = totalLent - totalRecovered
-    val loanRecoveryRate = if (totalLent > 0) (totalRecovered / totalLent).toFloat() else 0f
+    // Loan metrics are derived from the persisted repayment ledger when available. The fallback
+    // preserves the existing standalone preview/API behavior for callers without a database summary.
+    val totalLent = remember(loans, loanRecoverySummary) {
+        loanRecoverySummary?.totalPrincipal ?: loans.sumOf { it.amount.coerceAtLeast(0.0) }
+    }
+    val totalRecovered = remember(loans, loanRecoverySummary) {
+        loanRecoverySummary?.totalRecovered ?: loans.filter { it.isRepaid }.sumOf { it.amount.coerceAtLeast(0.0) }
+    }
+    val totalPending = remember(loans, loanRecoverySummary) {
+        loanRecoverySummary?.totalOutstanding ?: (totalLent - totalRecovered).coerceAtLeast(0.0)
+    }
+    val loanRecoveryRate = if (totalLent > 0) (totalRecovered / totalLent).coerceIn(0.0, 1.0).toFloat() else 0f
 
     LazyColumn(
         modifier = modifier
