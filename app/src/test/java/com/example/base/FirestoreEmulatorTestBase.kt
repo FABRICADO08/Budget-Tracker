@@ -30,40 +30,57 @@ abstract class FirestoreEmulatorTestBase {
   protected lateinit var auth: FirebaseAuth
   protected lateinit var databaseId: String
 
-  @Before
-  open fun setUpFirebase() {
-    val context = ApplicationProvider.getApplicationContext<Context>()
-    val resId = context.resources.getIdentifier("firestore_database_id", "string", context.packageName)
-    databaseId = if (resId != 0) context.getString(resId) else "demo-database"
+    @Before
+    open fun setUpFirebase() {
+        org.junit.Assume.assumeTrue(
+            "Firebase Auth emulator is not running on $EMULATOR_HOST:$AUTH_PORT",
+            isEmulatorRunning(EMULATOR_HOST, AUTH_PORT)
+        )
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val resId = context.resources.getIdentifier("firestore_database_id", "string", context.packageName)
+        databaseId = if (resId != 0) context.getString(resId) else "demo-database"
 
-    val app = if (FirebaseApp.getApps(context).isEmpty()) {
-      val newApp = FirebaseApp.initializeApp(
-        context,
-        FirebaseOptions.Builder()
-          .setApplicationId("com.example.app")
-          .setProjectId(PROJECT_ID)
-          .setApiKey("fake-api-key-for-emulator")
-          .build()
-      )
-      val newFirestore = FirebaseFirestore.getInstance(newApp, databaseId)
-      newFirestore.useEmulator(EMULATOR_HOST, FIRESTORE_PORT)
-      newFirestore.firestoreSettings = FirebaseFirestoreSettings.Builder()
-        .setLocalCacheSettings(MemoryCacheSettings.newBuilder().build())
-        .build()
-      val newAuth = FirebaseAuth.getInstance(newApp)
-      newAuth.useEmulator(EMULATOR_HOST, AUTH_PORT)
-      newApp
-    } else {
-      FirebaseApp.getInstance()
+        val app = if (FirebaseApp.getApps(context).isEmpty()) {
+            val newApp = FirebaseApp.initializeApp(
+                context,
+                FirebaseOptions.Builder()
+                    .setApplicationId("com.example.app")
+                    .setProjectId(PROJECT_ID)
+                    .setApiKey("fake-api-key-for-emulator")
+                    .build()
+            )
+            val newFirestore = FirebaseFirestore.getInstance(newApp, databaseId)
+            newFirestore.useEmulator(EMULATOR_HOST, FIRESTORE_PORT)
+            newFirestore.firestoreSettings = FirebaseFirestoreSettings.Builder()
+                .setLocalCacheSettings(MemoryCacheSettings.newBuilder().build())
+                .build()
+            val newAuth = FirebaseAuth.getInstance(newApp)
+            newAuth.useEmulator(EMULATOR_HOST, AUTH_PORT)
+            newApp
+        } else {
+            FirebaseApp.getInstance()
+        }
+
+        firestore = FirebaseFirestore.getInstance(app, databaseId)
+        auth = FirebaseAuth.getInstance(app)
     }
 
-    firestore = FirebaseFirestore.getInstance(app, databaseId)
-    auth = FirebaseAuth.getInstance(app)
-  }
+    private fun isEmulatorRunning(host: String, port: Int): Boolean {
+        return try {
+            java.net.Socket().use { socket ->
+                socket.connect(java.net.InetSocketAddress(host, port), 250)
+                true
+            }
+        } catch (_: Exception) {
+            false
+        }
+    }
 
   @After
   open fun tearDownFirebase() {
-    auth.signOut()
+    if (::auth.isInitialized) {
+        auth.signOut()
+    }
   }
 
   protected suspend fun signInTestUser(email: String): String = withContext(Dispatchers.IO) {
