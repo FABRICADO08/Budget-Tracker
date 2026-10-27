@@ -34,8 +34,8 @@ jobs:
       # The setup action installs stable-channel packages by default.
       - name: Install Android 17 API 37 SDK
         run: |
-          sdkmanager --list --channel=3 | grep -E 'platforms;android-37|build-tools;37'
-          sdkmanager --channel=3 "platforms;android-37" "build-tools;37.0.0"
+          sdkmanager --list --channel=3 | grep -E 'platforms;android-37\\.0|build-tools;37'
+          sdkmanager --channel=3 "platforms;android-37.0" "build-tools;37.0.0"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6
