@@ -59,9 +59,10 @@ object FinanceBackupCryptography {
             val iv = ByteArray(IV_BYTES).also(secureRandom::nextBytes)
             var keyBytes: ByteArray? = null
             try {
-                keyBytes = deriveKey(password, salt, iterations, kdf)
+                val derivedKey = deriveKey(password, salt, iterations, kdf)
+                keyBytes = derivedKey
                 val cipher = Cipher.getInstance(CIPHER_ALGORITHM)
-                cipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(keyBytes, "AES"), GCMParameterSpec(TAG_BITS, iv))
+                cipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(derivedKey, "AES"), GCMParameterSpec(TAG_BITS, iv))
                 cipher.updateAAD(authenticatedHeader(kdf, iterations))
                 val ciphertext = cipher.doFinal(clearBytes)
                 val envelope = JSONObject()
@@ -134,11 +135,12 @@ object FinanceBackupCryptography {
             var keyBytes: ByteArray? = null
             var clearBytes: ByteArray? = null
             try {
-                keyBytes = deriveKey(password, salt, iterations, kdf)
+                val derivedKey = deriveKey(password, salt, iterations, kdf)
+                keyBytes = derivedKey
                 val cipher = Cipher.getInstance(CIPHER_ALGORITHM)
-                cipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(keyBytes, "AES"), GCMParameterSpec(TAG_BITS, iv))
+                cipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(derivedKey, "AES"), GCMParameterSpec(TAG_BITS, iv))
                 cipher.updateAAD(authenticatedHeader(kdf, iterations))
-                clearBytes = try {
+                val decryptedBytes = try {
                     cipher.doFinal(ciphertext)
                 } catch (error: AEADBadTagException) {
                     throw IllegalArgumentException(
@@ -146,10 +148,11 @@ object FinanceBackupCryptography {
                         error
                     )
                 }
-                require(clearBytes.size <= MAX_PLAINTEXT_BYTES) {
+                clearBytes = decryptedBytes
+                require(decryptedBytes.size <= MAX_PLAINTEXT_BYTES) {
                     "Decrypted backup is larger than the supported 25 MB limit."
                 }
-                return String(clearBytes, UTF8)
+                return String(decryptedBytes, UTF8)
             } catch (error: GeneralSecurityException) {
                 throw IllegalArgumentException(
                     "Incorrect password or the backup file could not be authenticated.",
