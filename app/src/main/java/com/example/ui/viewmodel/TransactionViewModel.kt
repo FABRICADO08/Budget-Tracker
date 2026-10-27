@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.data.local.dao.LoanDao
+import com.example.data.local.dao.LoanRecoverySummary
 import com.example.data.local.dao.TransactionDao
 import com.example.data.local.entity.Loan
 import com.example.data.local.entity.Transaction
@@ -11,6 +12,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -40,6 +42,15 @@ class TransactionViewModel(
             started = SharingStarted.WhileSubscribed(5000L),
             initialValue = emptyList()
         )
+
+    /** Derived from the persisted repayment ledger, scoped by the same authenticated UID. */
+    val loanRecoverySummary: StateFlow<LoanRecoverySummary> =
+        (loanDao?.observeRecoverySummaryForUser(userId) ?: flowOf(LoanRecoverySummary()))
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000L),
+                initialValue = LoanRecoverySummary()
+            )
 
     fun insertTransaction(
         amount: Double,
