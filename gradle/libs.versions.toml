@@ -45,7 +45,7 @@ biometric = "1.2.0-alpha05"
 bouncycastle = "1.80"
 netty = "4.1.118.Final"
 jdom2 = "2.0.6.1"
-jose4j = "0.9.6"
+jose4j = "0.9.7"
 commonsLang3 = "3.18.0"
 httpclient = "4.5.14"
 
