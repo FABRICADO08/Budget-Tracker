@@ -14,6 +14,10 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -172,8 +176,8 @@ fun BackupPasswordDialog(
     onConfirm: (CharArray) -> Unit,
     onDismiss: () -> Unit
 ) {
-    var password by androidx.compose.runtime.remember(mode) { androidx.compose.runtime.mutableStateOf("") }
-    var confirmation by androidx.compose.runtime.remember(mode) { androidx.compose.runtime.mutableStateOf("") }
+    var password by remember(mode) { mutableStateOf("") }
+    var confirmation by remember(mode) { mutableStateOf("") }
     val passwordLongEnough = password.length >= FinanceBackupCryptography.MIN_PASSWORD_LENGTH
     val matches = mode == BackupPasswordMode.RESTORE || password == confirmation
     val canSubmit = !busy && passwordLongEnough && matches
