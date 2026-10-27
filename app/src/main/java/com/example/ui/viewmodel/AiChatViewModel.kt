@@ -38,7 +38,7 @@ class AiChatViewModel : ViewModel() {
                 text("You are an expert, encouraging AI Financial & Savings Advisor inside the BudgetTracker app. " +
                         "Your mission is to help users manage their daily spending, cut unnecessary costs, plan realistic savings goals, " +
                         "and make smart purchasing decisions in South African Rand (R). You have access to Google Search for the latest financial rates, discounts, and prices. " +
-                        "Keep your answers concise, practical, actionable, and formatted with bullet points where helpful.")
+                        "Keep answers concise, practical and actionable. Never invent transactions, balances, rates or financial facts; distinguish recorded facts from estimates, explain assumptions, avoid guaranteed returns, and give cautious educational guidance.")
             },
             tools = listOf(Tool.googleSearch())
         )
@@ -50,14 +50,70 @@ class AiChatViewModel : ViewModel() {
             modelName = "gemini-3.1-flash-lite",
             systemInstruction = content {
                 text("You are an expert AI Financial Advisor for BudgetTracker. " +
-                        "Give concise, helpful money management and savings tips in South African Rand (R).")
+                        "Give concise, cautious money management and savings tips in South African Rand (R). Never invent financial facts; distinguish recorded facts from estimates, explain assumptions, and avoid guaranteed returns.")
             }
         )
     }
 
-    private val chatSession by lazy {
-        chatModel.startChat()
+    // Resettable so Clear History and a privacy-setting change also clear Gemini conversation context.
+    private var chatSession = chatModel.startChat()
+
+    private val _financialContext = MutableStateFlow<String?>(null)
+    private val _hasFinancialContext = MutableStateFlow(false)
+    val hasFinancialContext: StateFlow<Boolean> = _hasFinancialContext.asStateFlow()
+
+    private val _includeFinancialContext = MutableStateFlow(false)
+    val includeFinancialContext: StateFlow<Boolean> = _includeFinancialContext.asStateFlow()
+
+    /** The caller must provide an aggregate-only summary scoped to the authenticated user. */
+    fun setFinancialContext(summary: String?) {
+        _financialContext.value = summary?.trim()?.take(4_000)?.takeIf { it.isNotBlank() }
+        _hasFinancialContext.value = _financialContext.value != null
+        if (!_hasFinancialContext.value) _includeFinancialContext.value = false
     }
+
+    /** Changing data-sharing consent starts a fresh conversation to clear the prior model context. */
+    fun setIncludeFinancialContext(include: Boolean) {
+        if (_isLoading.value || _includeFinancialContext.value == include) return
+        _includeFinancialContext.value = include && _hasFinancialContext.value
+        resetConversation(
+            if (_includeFinancialContext.value) {
+                "Financial summary sharing is on. Only aggregate totals and category totals are included."
+            } else {
+                "Financial summary sharing is off. This conversation restarted without your financial summary."
+            }
+        )
+    }
+
+    private fun requestPrompt(userText: String): String {
+        val context = _financialContext.value
+        if (!_includeFinancialContext.value || context.isNullOrBlank()) return userText
+        return """
+            User question:
+            $userText
+
+            Latest aggregate financial summary for the authenticated account:
+            $context
+
+            Instructions:
+            - Use this latest summary for account-specific facts, preferring it over older summaries.
+            - It contains aggregate totals only and may not include cloud-only records.
+            - Do not infer a complete available balance from income and expenses alone.
+            - State estimates and assumptions; never invent records or guarantee outcomes.
+        """.trimIndent()
+    }
+
+    private fun resetConversation(advisorNotice: String? = null) {
+        chatSession = chatModel.startChat()
+        _messages.value = listOf(
+            ChatMessage(
+                sender = MessageSender.ADVISOR,
+                text = advisorNotice ?: "Hello! I'm your BudgetTracker AI Advisor. Ask me about budgeting, spending, and savings."
+            )
+        )
+        _errorMessage.value = null
+    }
+
 
     private val _messages = MutableStateFlow<List<ChatMessage>>(
         listOf(
@@ -79,6 +135,7 @@ class AiChatViewModel : ViewModel() {
         val trimmed = userText.trim()
         if (trimmed.isBlank() || _isLoading.value) return
 
+        val prompt = requestPrompt(trimmed)
         val userMessage = ChatMessage(sender = MessageSender.USER, text = trimmed)
         _messages.value = _messages.value + userMessage
         _isLoading.value = true
@@ -87,7 +144,7 @@ class AiChatViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 val response = withTimeout(60_000L) {
-                    chatSession.sendMessage(trimmed)
+                    chatSession.sendMessage(prompt)
                 }
                 val replyText = response.text
                 if (!replyText.isNullOrBlank()) {
@@ -113,7 +170,7 @@ class AiChatViewModel : ViewModel() {
                     try {
                         val fbResponse = withTimeout(30_000L) {
                             fallbackModel.generateContent(
-                                "User query in BudgetTracker: $trimmed. Give a concise, helpful financial response in South African Rand (R)."
+                                "User query in BudgetTracker: $prompt. Give a concise, cautious financial response in South African Rand (R). Use account-specific facts only when the latest aggregate summary is supplied."
                             )
                         }
                         val fbText = fbResponse.text
@@ -145,12 +202,7 @@ class AiChatViewModel : ViewModel() {
     }
 
     fun clearHistory() {
-        _messages.value = listOf(
-            ChatMessage(
-                sender = MessageSender.ADVISOR,
-                text = "Hello! I'm your BudgetTracker AI Advisor. Ask me anything about budgeting tips, cutting expenses, investing for savings goals, or finding budget-friendly places nearby!"
-            )
-        )
-        _errorMessage.value = null
+        if (_isLoading.value) return
+        resetConversation()
     }
 }
