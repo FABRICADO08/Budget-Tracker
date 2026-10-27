@@ -2,7 +2,6 @@ package com.example.ui.auth
 
 import android.app.Activity
 import android.content.Context
-import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -357,11 +356,12 @@ fun onGoogleSignInClicked(
                 onAuthError("Unexpected credential type received.")
             }
         } catch (e: GetCredentialCancellationException) {
-            Log.w("Auth", "Google Sign-In flow cancelled or dismissed: ${e.message}", e)
+            // User cancellation is expected and must not be logged as an error.
             onAuthCancelled()
-        } catch (e: Exception) {
-            Log.e("Auth", "Google Sign-In failed", e)
-            onAuthError(e.localizedMessage ?: "Sign in failed")
+        } catch (_: Exception) {
+            // Authentication exceptions can contain provider details or credential metadata.
+            // Keep logs and user-visible errors generic; never log the throwable.
+            onAuthError("Sign-in failed. Please check your connection and try again.")
         }
     }
 }
@@ -376,8 +376,8 @@ fun signOut(
     scope.launch {
         try {
             credentialManager.clearCredentialState(ClearCredentialStateRequest())
-        } catch (e: Exception) {
-            Log.e("Auth", "Failed to clear credential state", e)
+        } catch (_: Exception) {
+            // Firebase sign-out already completed; avoid logging credential-provider details.
         } finally {
             onSignOutComplete()
         }
