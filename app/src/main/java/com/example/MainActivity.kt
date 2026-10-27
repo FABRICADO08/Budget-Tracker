@@ -386,6 +386,7 @@ fun TransactionApp(
     }
 
     var selectedTab by remember { mutableIntStateOf(0) } // Expenses, Analytics, Loans, AI, Budgets, Recurring bills
+    var dashboardMonthYm by remember { mutableStateOf(SimpleDateFormat("yyyy-MM", Locale.ROOT).format(Date())) }
     var aiPendingPrompt by remember { mutableStateOf<String?>(null) }
     var showAddExpenseDialog by remember { mutableStateOf(false) }
     var showCsvImportDialog by remember { mutableStateOf(false) }
@@ -498,25 +499,28 @@ fun TransactionApp(
 
     var searchQuery by remember { mutableStateOf("") }
 
-    val filteredTransactions = remember(transactions, searchQuery) {
+    val selectedMonthTransactions = remember(transactions, dashboardMonthYm) {
+        transactions.filter { it.date.startsWith(dashboardMonthYm) }
+    }
+    val filteredTransactions = remember(selectedMonthTransactions, searchQuery) {
         if (searchQuery.isBlank()) {
-            transactions
+            selectedMonthTransactions
         } else {
             val query = searchQuery.trim().lowercase(Locale.getDefault())
-            transactions.filter {
+            selectedMonthTransactions.filter {
                 it.category.lowercase(Locale.getDefault()).contains(query) ||
-                it.description.lowercase(Locale.getDefault()).contains(query)
+                    it.description.lowercase(Locale.getDefault()).contains(query)
             }
         }
     }
 
+
     val totalExpense = transactions.filter { it.type == "expense" }.sumOf { it.amount }
     val totalPendingLoans = loans.filter { !it.isRepaid }.sumOf { it.amount }
-    val currentMonthPrefix = remember { SimpleDateFormat("yyyy-MM", Locale.ROOT).format(Date()) }
-    val currentMonthTransactions = remember(transactions, currentMonthPrefix) {
-        transactions.filter { it.date.startsWith(currentMonthPrefix) }
-    }
-    val currentMonthSpend = currentMonthTransactions.filter { it.type.equals("expense", true) }.sumOf { it.amount.coerceAtLeast(0.0) }
+    val selectedMonthSpend = selectedMonthTransactions
+        .filter { it.type.equals("expense", true) && it.amount.isFinite() }
+        .sumOf { it.amount.coerceAtLeast(0.0) }
+    val dashboardMonthLabel = remember(dashboardMonthYm) { formatDashboardMonthLabel(dashboardMonthYm) }
 
     // Zero-permission Android Photo Picker for receipt slips
     val photoPickerLauncher = rememberLauncherForActivityResult(
@@ -830,8 +834,11 @@ fun TransactionApp(
                         item {
                             PremiumDashboardHero(
                                 userName = currentUser.displayName?.substringBefore(" ").orEmpty(),
-                                monthSpend = currentMonthSpend,
-                                transactionCount = currentMonthTransactions.size,
+                                monthSpend = selectedMonthSpend,
+                                transactionCount = selectedMonthTransactions.size,
+                                selectedMonthLabel = dashboardMonthLabel,
+                                onPreviousMonth = { dashboardMonthYm = shiftDashboardMonth(dashboardMonthYm, -1) },
+                                onNextMonth = { dashboardMonthYm = shiftDashboardMonth(dashboardMonthYm, 1) },
                                 onBudgetsClick = { selectedTab = 4 },
                                 onBillsClick = { selectedTab = 5 }
                             )
@@ -839,7 +846,11 @@ fun TransactionApp(
 
                         // Monthly budget target and progress
                         item {
-                            MonthlyExpenditureSummary(viewModel = viewModel, userId = currentUser.uid)
+                            MonthlyExpenditureSummary(
+                                viewModel = viewModel,
+                                userId = currentUser.uid,
+                                selectedYearMonth = dashboardMonthYm
+                            )
                         }
 
                         // 2. Dynamic Monthly Spending Bar Chart
@@ -1060,10 +1071,33 @@ fun TransactionApp(
                             }
                         } else if (filteredTransactions.isEmpty()) {
                             item {
-                                NoSearchResultsView(
-                                    query = searchQuery,
-                                    onClear = { searchQuery = "" }
-                                )
+                                if (searchQuery.isNotBlank()) {
+                                    NoSearchResultsView(
+                                        query = searchQuery,
+                                        onClear = { searchQuery = "" }
+                                    )
+                                } else {
+                                    Column(
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = 28.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Text(
+                                            "No transactions for $dashboardMonthLabel",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                        Text(
+                                            "Choose another month or add a transaction for this period.",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        TextButton(onClick = {
+                                            scannedDataForDialog = null
+                                            showAddExpenseDialog = true
+                                        }) { Text("Add transaction") }
+                                    }
+                                }
                             }
                         } else {
                             items(filteredTransactions, key = { it.id }) { transaction ->
@@ -1777,7 +1811,8 @@ fun ProfileSecurityDialog(
 fun MonthlyExpenditureSummary(
     viewModel: TransactionViewModel,
     modifier: Modifier = Modifier,
-    userId: String? = null
+    userId: String? = null,
+    selectedYearMonth: String? = null
 ) {
     val context = LocalContext.current
     val transactions by viewModel.transactions.collectAsState()
@@ -1788,24 +1823,43 @@ fun MonthlyExpenditureSummary(
     }
     var showEditBudgetDialog by remember { mutableStateOf(false) }
 
-    val currentYearMonth = remember {
-        SimpleDateFormat("yyyy-MM", Locale.getDefault()).format(Date())
+    val currentYearMonth = selectedYearMonth ?: remember {
+        SimpleDateFormat("yyyy-MM", Locale.ROOT).format(Date())
     }
-    val currentMonthTitle = remember {
-        SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(Date())
+    val currentMonthTitle = remember(currentYearMonth) {
+        formatDashboardMonthLabel(currentYearMonth)
     }
 
     val monthTransactions = remember(transactions, currentYearMonth) {
-        transactions.filter { it.date.startsWith(currentYearMonth) && it.type == "expense" }
+        transactions.filter {
+            it.date.startsWith(currentYearMonth) &&
+                it.type.equals("expense", true) &&
+                it.amount.isFinite() &&
+                it.amount > 0.0
+        }
     }
     val totalExpenditure = remember(monthTransactions) {
         monthTransactions.sumOf { it.amount }
     }
 
-    val currentDay = remember {
-        Calendar.getInstance().get(Calendar.DAY_OF_MONTH).coerceAtLeast(1)
+    val daysElapsedForSelectedMonth = remember(currentYearMonth) {
+        val selectedParts = currentYearMonth.split("-")
+        val selectedCalendar = Calendar.getInstance()
+        if (selectedParts.size == 2) {
+            val year = selectedParts[0].toIntOrNull()
+            val month = selectedParts[1].toIntOrNull()
+            if (year != null && month != null && month in 1..12) {
+                selectedCalendar.set(year, month - 1, 1)
+                val isCurrentMonth = currentYearMonth == SimpleDateFormat("yyyy-MM", Locale.ROOT).format(Date())
+                if (isCurrentMonth) {
+                    Calendar.getInstance().get(Calendar.DAY_OF_MONTH).coerceAtLeast(1)
+                } else {
+                    selectedCalendar.getActualMaximum(Calendar.DAY_OF_MONTH).coerceAtLeast(1)
+                }
+            } else 1
+        } else 1
     }
-    val dailyAvg = if (currentDay > 0) totalExpenditure / currentDay else 0.0
+    val dailyAvg = totalExpenditure / daysElapsedForSelectedMonth
 
     val budgetProgress = if (monthlyBudget > 0) (totalExpenditure / monthlyBudget).toFloat() else 0f
     val isOverBudget = monthlyBudget > 0 && totalExpenditure > monthlyBudget
@@ -3221,4 +3275,28 @@ fun getTransactionIcon(category: String): ImageVector {
         "health", "fitness" -> Icons.Default.FitnessCenter
         else -> Icons.Default.HomeRepairService
     }
+}
+
+
+private fun shiftDashboardMonth(yearMonth: String, offset: Int): String {
+    val parts = yearMonth.split("-")
+    val year = parts.getOrNull(0)?.toIntOrNull() ?: return yearMonth
+    val month = parts.getOrNull(1)?.toIntOrNull()?.takeIf { it in 1..12 } ?: return yearMonth
+    val calendar = Calendar.getInstance().apply {
+        set(year, month - 1, 1, 12, 0, 0)
+        set(Calendar.MILLISECOND, 0)
+        add(Calendar.MONTH, offset)
+    }
+    return SimpleDateFormat("yyyy-MM", Locale.ROOT).format(calendar.time)
+}
+
+private fun formatDashboardMonthLabel(yearMonth: String): String {
+    val parts = yearMonth.split("-")
+    val year = parts.getOrNull(0)?.toIntOrNull() ?: return yearMonth
+    val month = parts.getOrNull(1)?.toIntOrNull()?.takeIf { it in 1..12 } ?: return yearMonth
+    val calendar = Calendar.getInstance().apply {
+        set(year, month - 1, 1, 12, 0, 0)
+        set(Calendar.MILLISECOND, 0)
+    }
+    return SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(calendar.time)
 }
