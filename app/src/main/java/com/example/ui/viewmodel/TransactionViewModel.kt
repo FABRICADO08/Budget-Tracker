@@ -7,6 +7,7 @@ import com.example.data.local.dao.LoanDao
 import com.example.data.local.dao.TransactionDao
 import com.example.data.local.entity.Loan
 import com.example.data.local.entity.Transaction
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.emptyFlow
@@ -97,8 +98,14 @@ class TransactionViewModel(
             return
         }
         viewModelScope.launch {
-            val result = runCatching { transactionDao.insertAll(ownedItems) }
-            onComplete?.invoke(result.isSuccess)
+            try {
+                transactionDao.insertAll(ownedItems)
+                onComplete?.invoke(true)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                onComplete?.invoke(false)
+            }
         }
     }
 
