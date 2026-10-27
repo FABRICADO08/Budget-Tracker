@@ -47,6 +47,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -88,6 +89,8 @@ fun AiChatScreen(
     val messages by viewModel.messages.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
+    val hasFinancialContext by viewModel.hasFinancialContext.collectAsState()
+    val includeFinancialContext by viewModel.includeFinancialContext.collectAsState()
 
     var inputPrompt by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
@@ -187,6 +190,40 @@ fun AiChatScreen(
                         modifier = Modifier.size(18.dp)
                     )
                 }
+            }
+        }
+
+        // Data sharing is opt-in. Only an aggregate summary is sent, never transaction descriptions.
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Use my financial summary",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = when {
+                            !hasFinancialContext -> "No local transactions are available to summarise yet."
+                            includeFinancialContext -> "On: monthly totals and category totals are shared with Gemini."
+                            else -> "Off: transaction summaries are not sent to Gemini."
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = includeFinancialContext,
+                    onCheckedChange = { viewModel.setIncludeFinancialContext(it) },
+                    enabled = hasFinancialContext && !isLoading
+                )
             }
         }
 
