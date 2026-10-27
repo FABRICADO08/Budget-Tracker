@@ -10,6 +10,13 @@ plugins {
 allprojects {
   configurations.all {
     resolutionStrategy {
+      // Align every transitive Netty 4.1 module, not only the modules listed below.
+      eachDependency {
+        if (requested.group == "io.netty" && requested.version.startsWith("4.1.")) {
+          useVersion("4.1.139.Final")
+          because("Align Netty modules to the patched 4.1.139.Final security release")
+        }
+      }
       force(
         "org.bouncycastle:bcprov-jdk18on:1.86",
         "org.bouncycastle:bcpkix-jdk18on:1.86",
