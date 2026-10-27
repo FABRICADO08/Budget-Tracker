@@ -512,15 +512,42 @@ fun TransactionApp(
     }
 
     val csvImportLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
+        contract = ActivityResultContracts.OpenDocument()
     ) { uri ->
         if (uri != null) {
-            runCatching { context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() } }
-                .onSuccess { content ->
-                    if (content.isNullOrBlank()) Toast.makeText(context, "The selected file is empty.", Toast.LENGTH_LONG).show()
-                    else { csvImportText = content; showCsvImportDialog = true }
+            coroutineScope.launch {
+                runCatching {
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                        val input = context.contentResolver.openInputStream(uri)
+                            ?: error("Unable to open the selected bank statement.")
+                        val bytes = input.use { stream ->
+                            val output = java.io.ByteArrayOutputStream()
+                            val buffer = ByteArray(8192)
+                            var total = 0
+                            while (true) {
+                                val count = stream.read(buffer)
+                                if (count < 0) break
+                                total += count
+                                require(total <= 25 * 1024 * 1024) {
+                                    "This statement is larger than the supported 25 MB limit."
+                                }
+                                output.write(buffer, 0, count)
+                            }
+                            output.toByteArray()
+                        }
+                        String(bytes, Charsets.UTF_8)
+                    }
+                }.onSuccess { content ->
+                    if (content.isBlank()) {
+                        Toast.makeText(context, "The selected file is empty.", Toast.LENGTH_LONG).show()
+                    } else {
+                        csvImportText = content
+                        showCsvImportDialog = true
+                    }
+                }.onFailure { error ->
+                    Toast.makeText(context, error.message ?: "Could not read this CSV file.", Toast.LENGTH_LONG).show()
                 }
-                .onFailure { error -> Toast.makeText(context, error.message ?: "Could not read this CSV file.", Toast.LENGTH_LONG).show() }
+            }
         }
     }
 
@@ -607,7 +634,7 @@ fun TransactionApp(
 
                     if (selectedTab == 0) {
                         IconButton(
-                            onClick = { csvImportLauncher.launch("text/*") },
+                            onClick = { csvImportLauncher.launch(arrayOf("text/csv", "text/comma-separated-values", "application/vnd.ms-excel", "text/plain", "*/*")) },
                             modifier = Modifier.testTag("import_bank_csv_button")
                         ) {
                             Icon(Icons.Default.Receipt, contentDescription = "Import bank statement", tint = MaterialTheme.colorScheme.primary)
@@ -1135,8 +1162,14 @@ fun TransactionApp(
             existingTransactions = transactions,
             onDismiss = { showCsvImportDialog = false },
             onImport = { imported ->
-                imported.forEach { viewModel.insert(it) }
-                Toast.makeText(context, "Queued ${imported.size} new transactions for import.", Toast.LENGTH_LONG).show()
+                viewModel.insertAll(imported) { succeeded ->
+                    Toast.makeText(
+                        context,
+                        if (succeeded) "Imported ${imported.size} transactions."
+                        else "Import failed. No rows were added; review the statement and try again.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
                 showCsvImportDialog = false
             }
         )
