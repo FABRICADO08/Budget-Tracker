@@ -136,3 +136,70 @@ test("authenticated user can manage their savings goals", async () => {
 
   await assertSucceeds(goalRef.delete());
 });
+
+
+test("expense ownership cannot be reassigned and unexpected fields are rejected", async () => {
+  const aliceDb = testEnv.authenticatedContext("alice_1").firestore();
+  const expenseRef = aliceDb.collection("users").doc("alice_1").collection("expenses").doc("exp_owned");
+  await assertSucceeds(expenseRef.set({
+    userId: "alice_1",
+    title: "Groceries",
+    amount: 120.5,
+    category: "Groceries",
+    date: "2026-10-27",
+    type: "expense",
+    createdAt: new Date()
+  }));
+
+  await assertFails(expenseRef.update({ userId: "bob_2" }));
+  await assertFails(expenseRef.update({ admin: true }));
+});
+
+test("expense rules reject invalid amounts and oversized payload fields", async () => {
+  const aliceDb = testEnv.authenticatedContext("alice_1").firestore();
+  const expenses = aliceDb.collection("users").doc("alice_1").collection("expenses");
+
+  await assertFails(expenses.doc("negative").set({
+    userId: "alice_1",
+    title: "Invalid negative amount",
+    amount: -1,
+    category: "Other",
+    date: "2026-10-27",
+    type: "expense",
+    createdAt: new Date()
+  }));
+
+  await assertFails(expenses.doc("too_large").set({
+    userId: "alice_1",
+    title: "Invalid amount",
+    amount: 10000001,
+    category: "Other",
+    date: "2026-10-27",
+    type: "expense",
+    createdAt: new Date()
+  }));
+
+  await assertFails(expenses.doc("oversized_note").set({
+    userId: "alice_1",
+    title: "Invalid note",
+    amount: 10,
+    category: "Other",
+    date: "2026-10-27",
+    type: "expense",
+    note: "x".repeat(501),
+    createdAt: new Date()
+  }));
+});
+
+test("unauthenticated users cannot access savings goals", async () => {
+  const db = testEnv.unauthenticatedContext().firestore();
+  const goal = db.collection("users").doc("alice_1").collection("savingsGoals").doc("goal_1");
+  await assertFails(goal.get());
+  await assertFails(goal.set({
+    userId: "alice_1",
+    title: "Emergency Fund",
+    targetAmount: 5000,
+    currentAmount: 0,
+    createdAt: new Date()
+  }));
+});
