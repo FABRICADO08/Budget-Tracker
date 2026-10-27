@@ -157,7 +157,7 @@ Monthly and category limits use decimal-string storage to preserve cents. The fe
 
 ## Versioned backup and restore
 
-The **Account & Security → Backup & Restore** screen exports a versioned JSON file through Android's Storage Access Framework and restores a selected JSON file only after a preview and explicit choice.
+The **Account & Security → Backup & Restore** screen exports a versioned, password-encrypted JSON file through Android's Storage Access Framework. New exports use AES-GCM with a fresh random salt and IV and a password-derived 256-bit key; passwords must contain at least 12 characters and are never saved by the app. The encrypted envelope records the crypto version and KDF parameters so it can be decrypted before schema validation. Restore asks for the password, authenticates and decrypts the file, validates all records, and only then shows the preview and explicit merge/replace choice. Backups made by older versions as plaintext JSON remain supported for restore compatibility.
 
 The backup includes the current account's Room transactions, loans, loan repayments, category budgets, budget threshold alerts, recurring schedules and occurrences, the per-account monthly budget cap, plus that account's Firestore profile, expenses, and savings goals. It does not include passwords, Firebase ID tokens, App Check tokens, Gemini credentials, or biometric secrets.
 
@@ -165,4 +165,4 @@ Restore validates the file format, schema version, collection sizes, ownership t
 
 Room restoration uses a single database transaction. Firestore data is backed up in memory before restore and the app attempts to roll it back on failure. Because Room and Firestore are separate storage systems, there is no cross-system ACID transaction; if the app reports a rollback failure, retain the JSON file and review the account before trying again.
 
-Treat exported JSON files as sensitive financial records. Store backups somewhere private and avoid sharing them publicly.
+Treat backup files as sensitive financial records even when encrypted. Keep the password separately from the file; there is no password recovery, and a lost password makes an encrypted backup unrecoverable. Older plaintext exports are not protected by this encryption and should be stored privately or re-exported from the app.
