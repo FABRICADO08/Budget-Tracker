@@ -53,7 +53,8 @@ fun configureAppCheck(context: Context, intent: Intent?) {
                 }
             }
         }
-    } catch (e: Exception) {
-        Log.e(TAG, "App Check configuration failed", e)
+    } catch (_: Exception) {
+        // Exceptions may include provider configuration details; never log them verbatim.
+        Log.e(TAG, "App Check provider initialization failed.")
     }
 }
