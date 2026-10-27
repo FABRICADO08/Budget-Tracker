@@ -147,6 +147,7 @@ import com.example.ui.screens.RecordLoanRepaymentDialog
 import com.example.ui.theme.BudgetTrackerTheme
 import com.example.ui.theme.ExpenseRed
 import com.example.ui.theme.IncomeGreen
+import com.example.domain.finance.FinancialContextBuilder
 import com.example.ui.viewmodel.AiChatViewModel
 import com.example.ui.viewmodel.ScanSlipState
 import com.example.ui.viewmodel.ScannedSlipData
@@ -219,7 +220,7 @@ class MainActivity : FragmentActivity() {
                             factory = TransactionViewModel.Factory(db.transactionDao(), db.loanDao(), signedInUser.uid)
                         )
                         val slipScannerViewModel: SlipScannerViewModel = viewModel()
-                        val aiChatViewModel: AiChatViewModel = viewModel()
+                        val aiChatViewModel: AiChatViewModel = viewModel(key = "ai-chat-viewmodel-${signedInUser.uid}")
 
                         TransactionApp(
                             database = db,
@@ -478,6 +479,20 @@ fun TransactionApp(
 
     val transactions by viewModel.transactions.collectAsState()
     val loans by viewModel.loans.collectAsState()
+
+    // Optional AI context is computed only from the active user's already-scoped Room stream.
+    // It contains aggregated totals/categories, never transaction descriptions or merchant names.
+    LaunchedEffect(currentUser.uid, transactions) {
+        val summary = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+            if (transactions.isEmpty()) null else {
+                FinancialContextBuilder.build(
+                    transactions = transactions,
+                    monthlyBudgetLimit = BudgetPreferences.getMonthlyBudgetCap(context)
+                )
+            }
+        }
+        aiChatViewModel.setFinancialContext(summary)
+    }
     val scanState by scannerViewModel.scanState.collectAsState()
 
     var searchQuery by remember { mutableStateOf("") }
