@@ -17,8 +17,8 @@ import javax.crypto.spec.SecretKeySpec
  * Password-based authenticated encryption for exported financial backups.
  *
  * The password and derived key are never persisted. Every file uses a fresh random salt and IV.
- * The caller must also clear its password char array after any work done before invoking this
- * helper. API 24-25 use the platform's PBKDF2-HMAC-SHA1 provider; API 26+ use SHA-256.
+ * Password character buffers and derived keys are cleared on exit. API 24-25 use the platform's
+ * PBKDF2-HMAC-SHA1 provider; API 26+ use SHA-256.
  */
 object FinanceBackupCryptography {
     const val ENCRYPTED_FORMAT = "budget-tracker-encrypted-backup"
