@@ -38,9 +38,13 @@ object FinanceBackupCryptography {
     private val UTF8: Charset = Charsets.UTF_8
     private val secureRandom = SecureRandom()
 
-    fun isEncryptedBackup(contents: String): Boolean =
-        runCatching { JSONObject(contents).optString("format") == ENCRYPTED_FORMAT }
-            .getOrDefault(false)
+    fun isEncryptedBackup(contents: String): Boolean {
+        // New envelopes always put "format" first. Inspect only a small prefix rather than parsing
+        // a potentially 36 MB base64 payload on the UI thread.
+        val prefix = contents.take(1024)
+        return Regex("\\"format\\"\\s*:\\s*\\"$ENCRYPTED_FORMAT\\"")
+            .containsMatchIn(prefix)
+    }
 
     /** Encrypts a plaintext, versioned finance backup into a self-describing JSON envelope. */
     fun encrypt(plaintext: String, password: CharArray): String {
