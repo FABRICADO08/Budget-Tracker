@@ -37,7 +37,8 @@ import java.util.Locale
 
 private data class CsvImportCandidate(
     val lineNumber: Int,
-    val transaction: Transaction
+    val transaction: Transaction,
+    val balance: Double?
 )
 
 private data class CsvImportPreviewState(
@@ -71,6 +72,9 @@ fun BankCsvImportDialog(
     var creditColumn by remember(csvText, parsed) {
         mutableStateOf(findColumn(parsed?.headers.orEmpty(), listOf("credit", "deposit", "deposits", "money in", "paid in")))
     }
+    var balanceColumn by remember(csvText, parsed) {
+        mutableStateOf(findColumn(parsed?.headers.orEmpty(), listOf("running balance", "available balance", "balance")))
+    }
     var categoryColumn by remember(csvText, parsed) {
         mutableStateOf(findColumn(parsed?.headers.orEmpty(), listOf("category", "type of spend")))
     }
@@ -87,7 +91,7 @@ fun BankCsvImportDialog(
         (if (usesDebitCreditColumns) true else amountColumn >= 0)
 
     val previewState = remember(
-        parsed, dateColumn, descriptionColumn, amountColumn, debitColumn, creditColumn,
+        parsed, dateColumn, descriptionColumn, amountColumn, debitColumn, creditColumn, balanceColumn,
         categoryColumn, typeColumn, decimalComma, existingTransactions, mappingsAreValid
     ) {
         if (parsed == null || !mappingsAreValid) {
@@ -127,11 +131,14 @@ fun BankCsvImportDialog(
                 } else {
                     null
                 }
-                row.lineNumber to transaction
+                row.lineNumber to (transaction to row.values.getOrNull(balanceColumn).orEmpty().takeIf { balanceColumn >= 0 && it.isNotBlank() }?.let {
+                    BankCsvParser.parseAmount(it, decimalComma)
+                })
             }
 
-            val validRows = mappedRows.mapNotNull { (lineNumber, transaction) ->
-                transaction?.let { CsvImportCandidate(lineNumber, it) }
+            val validRows = mappedRows.mapNotNull { (lineNumber, result) ->
+                val transaction = result.first
+                transaction?.let { CsvImportCandidate(lineNumber, it, result.second) }
             }
             val uniqueRows = validRows.distinctBy { fingerprint(it.transaction) }
             val withoutExistingDuplicates = uniqueRows.filterNot { candidate ->
@@ -181,6 +188,7 @@ fun BankCsvImportDialog(
                         }
                         Column(Modifier.weight(1f)) {
                             MappingDropdown("Credit column (optional)", parsed.headers, creditColumn, "credit", expandedField, { expandedField = it }) { creditColumn = it }
+                    MappingDropdown("Balance column (optional)", parsed.headers, balanceColumn, "balance", expandedField, { expandedField = it }) { balanceColumn = it }
                         }
                     }
                     MappingDropdown("Category column (optional)", parsed.headers, categoryColumn, "category", expandedField, { expandedField = it }) { categoryColumn = it }
@@ -221,7 +229,10 @@ fun BankCsvImportDialog(
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(candidate.transaction.description, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                                         Text(
-                                            "Row ${candidate.lineNumber} · ${candidate.transaction.date} · ${candidate.transaction.category} · ${candidate.transaction.type}",
+                                            buildString {
+                                                append("Row ${candidate.lineNumber} · ${candidate.transaction.date} · ${candidate.transaction.category} · ${candidate.transaction.type}")
+                                                candidate.balance?.let { append(" · Balance ${ZarMoneyFormatter.format(it)}") }
+                                            },
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
