@@ -173,8 +173,9 @@ class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         try {
             configureAppCheck(this, intent)
-        } catch (e: Exception) {
-            android.util.Log.w("MainActivity", "App Check configuration skipped or deferred: ${e.message}")
+        } catch (_: Exception) {
+            // Do not write provider or token-related exception details to device logs.
+            android.util.Log.w("MainActivity", "App Check initialization did not complete.")
         }
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
