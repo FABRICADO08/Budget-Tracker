@@ -1,0 +1,25 @@
+name: "Dependabot Rebase"
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  pull-requests: write
+  contents: write
+
+jobs:
+  auto-rebase-on-main-push:
+    name: "Rebase Open Dependabot PRs"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Rebase open Dependabot PRs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          open_prs=$(gh pr list --app dependabot --state open --json number --jq '.[].number' 2>/dev/null || gh pr list --author "app/dependabot" --state open --json number --jq '.[].number' 2>/dev/null || echo "")
+          for pr in $open_prs; do
+            echo "Requesting rebase for Dependabot PR #$pr..."
+            gh pr comment "$pr" --body "@dependabot rebase" || true
+          done
