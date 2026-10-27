@@ -38,7 +38,7 @@ import com.example.data.local.entity.Transaction
         LegacyDataOwnership::class
     ],
     version = 4,
-    exportSchema = false
+    exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun transactionDao(): TransactionDao
