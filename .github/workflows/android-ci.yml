@@ -38,8 +38,14 @@ jobs:
       - name: Install Firebase CLI
         run: npm install --global firebase-tools@15.34.1
 
-      - name: Run unit tests with Firebase emulators
-        run: firebase emulators:exec --project demo-no-project --only auth,firestore --config firebase.json "gradle --no-daemon :app:testDebugUnitTest"
+      - name: Install Firestore rules test dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+
+      - name: Audit JavaScript test dependencies
+        run: npm audit --audit-level=high
+
+      - name: Run Firestore rules and Android unit tests
+        run: firebase emulators:exec --project demo-no-project --only auth,firestore --config firebase.json "npm run test:firestore-rules && gradle --no-daemon :app:testDebugUnitTest"
 
       - name: Generate CI-only debug keystore
         run: |
