@@ -147,7 +147,7 @@ fun BankCsvImportDialog(
             CsvImportPreviewState(
                 candidates = withoutExistingDuplicates,
                 invalidRowCount = mappedRows.count { it.second.first == null },
-                duplicateRowCount = mappedRows.count { it.second != null } - withoutExistingDuplicates.size
+                duplicateRowCount = mappedRows.count { it.second.first != null } - withoutExistingDuplicates.size
             )
         }
     }
@@ -180,7 +180,10 @@ fun BankCsvImportDialog(
                     MappingDropdown("Date column", parsed.headers, dateColumn, "date", expandedField, { expandedField = it }) { dateColumn = it }
                     MappingDropdown("Description column", parsed.headers, descriptionColumn, "description", expandedField, { expandedField = it }) { descriptionColumn = it }
 
-                    Text("Choose one amount mapping method:", style = MaterialTheme.typography.labelLarge)
+                    Text(
+                        "Choose one amount mapping method. If a Debit or Credit column is mapped, those columns take precedence over the single Amount column.",
+                        style = MaterialTheme.typography.labelLarge
+                    )
                     MappingDropdown("Single signed amount (optional)", parsed.headers, amountColumn, "amount", expandedField, { expandedField = it }) { amountColumn = it }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Column(Modifier.weight(1f)) {
