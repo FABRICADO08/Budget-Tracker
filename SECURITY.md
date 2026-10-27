@@ -19,7 +19,8 @@ This repository implements multi-layered continuous security and dependency enfo
 2. **Automated Dependabot Merge & Enforcement**: Minor, patch, and security pull requests opened by Dependabot are automatically analyzed, reviewed, and queued for auto-merge upon passing all CI and CodeQL status checks.
 3. **CodeQL Advanced Static Analysis**: Continuous CodeQL scanning monitors both `java-kotlin` (Android application logic) and `actions` (CI/CD workflows) using the extended `security-and-quality` rulesets.
 4. **Pull Request Dependency Review**: PRs introducing third-party dependencies are blocked if any moderate or higher severity CVEs are present.
-5. **Resolution Strategy & Constraints**: Transitive vulnerabilities (such as Netty, BouncyCastle, JDOM2, Jose4j, Commons Lang3, and HttpClient) are explicitly constrained in `app/build.gradle.kts` and forced in the root `build.gradle.kts`.
+5. **Pinned CI actions**: GitHub Actions workflows pin third-party actions to immutable commit SHAs to reduce supply-chain risk.
+6. **Dependency constraints**: Transitive security-sensitive libraries are constrained to reviewed versions in Gradle; version bumps must be tested and reviewed before merging.
 
 ---
 
