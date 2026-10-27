@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <full-backup-content>
-    <!-- Financial records and authentication/session preferences must not be copied by the
-         platform's ordinary unencrypted app-data backup. Use the password-protected export. -->
-    <exclude domain="database" path="." />
+    <!-- Do not transfer persisted local authentication/session credentials with automatic
+         app-data backup. Financial records remain eligible for Android's platform-managed,
+         account-protected database backup. For portable exports, use the encrypted backup flow. -->
     <exclude domain="sharedpref" path="." />
 </full-backup-content>
