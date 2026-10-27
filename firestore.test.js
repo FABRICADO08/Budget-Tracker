@@ -1,9 +1,27 @@
-const { initializeTestEnvironment, assertFails, assertSucceeds } = require("@firebase/rules-unit-testing");
+const {
+  initializeTestEnvironment,
+  assertFails,
+  assertSucceeds
+} = require("@firebase/rules-unit-testing");
+const {
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc
+} = require("firebase/firestore");
 const { test, before, after, beforeEach } = require("node:test");
 const fs = require("node:fs");
 
 const PROJECT_ID = "demo-no-project";
 let testEnv;
+
+const userDoc = (db, userId) => doc(db, "users", userId);
+const expenseDoc = (db, userId, expenseId) =>
+  doc(db, "users", userId, "expenses", expenseId);
+const savingsGoalDoc = (db, userId, goalId) =>
+  doc(db, "users", userId, "savingsGoals", goalId);
 
 before(async () => {
   testEnv = await initializeTestEnvironment({
@@ -17,54 +35,50 @@ before(async () => {
 });
 
 after(async () => {
-  if (testEnv) {
-    await testEnv.cleanup();
-  }
+  if (testEnv) await testEnv.cleanup();
 });
 
 beforeEach(async () => {
-  if (testEnv) {
-    await testEnv.clearFirestore();
-  }
+  if (testEnv) await testEnv.clearFirestore();
 });
 
-test("unauthenticated user cannot read or write user document", async () => {
-  const unauthedDb = testEnv.unauthenticatedContext().firestore();
-  await assertFails(unauthedDb.collection("users").doc("user_123").get());
-  await assertFails(unauthedDb.collection("users").doc("user_123").set({
+test("unauthenticated user cannot read or write a user document", async () => {
+  const db = testEnv.unauthenticatedContext().firestore();
+  await assertFails(getDoc(userDoc(db, "user_123")));
+  await assertFails(setDoc(userDoc(db, "user_123"), {
     userId: "user_123",
-    dailyBudget: 50.0,
+    dailyBudget: 50,
     currencySymbol: "$",
     createdAt: new Date()
   }));
 });
 
-test("authenticated user can create and read their own user profile", async () => {
-  const aliceDb = testEnv.authenticatedContext("alice_1").firestore();
-  await assertSucceeds(aliceDb.collection("users").doc("alice_1").set({
+test("authenticated user can create and read their own profile", async () => {
+  const db = testEnv.authenticatedContext("alice_1").firestore();
+  await assertSucceeds(setDoc(userDoc(db, "alice_1"), {
     userId: "alice_1",
-    dailyBudget: 60.0,
+    dailyBudget: 60,
     currencySymbol: "$",
     createdAt: new Date()
   }));
-  await assertSucceeds(aliceDb.collection("users").doc("alice_1").get());
+  await assertSucceeds(getDoc(userDoc(db, "alice_1")));
 });
 
 test("authenticated user cannot access another user's profile", async () => {
-  const aliceDb = testEnv.authenticatedContext("alice_1").firestore();
-  await assertFails(aliceDb.collection("users").doc("bob_2").get());
-  await assertFails(aliceDb.collection("users").doc("bob_2").set({
+  const db = testEnv.authenticatedContext("alice_1").firestore();
+  await assertFails(getDoc(userDoc(db, "bob_2")));
+  await assertFails(setDoc(userDoc(db, "bob_2"), {
     userId: "bob_2",
-    dailyBudget: 40.0,
+    dailyBudget: 40,
     currencySymbol: "$",
     createdAt: new Date()
   }));
 });
 
 test("authenticated user can manage their own expenses", async () => {
-  const aliceDb = testEnv.authenticatedContext("alice_1").firestore();
-  const expenseRef = aliceDb.collection("users").doc("alice_1").collection("expenses").doc("exp_1");
-  await assertSucceeds(expenseRef.set({
+  const db = testEnv.authenticatedContext("alice_1").firestore();
+  const ref = expenseDoc(db, "alice_1", "exp_1");
+  await assertSucceeds(setDoc(ref, {
     userId: "alice_1",
     title: "Grocery Shopping",
     amount: 45.5,
@@ -74,23 +88,18 @@ test("authenticated user can manage their own expenses", async () => {
     note: "Milk, eggs, vegetables",
     createdAt: new Date()
   }));
-
-  await assertSucceeds(expenseRef.get());
-
-  await assertSucceeds(expenseRef.update({
-    amount: 50.0,
+  await assertSucceeds(getDoc(ref));
+  await assertSucceeds(updateDoc(ref, {
+    amount: 50,
     note: "Updated groceries note"
   }));
-
-  await assertSucceeds(expenseRef.delete());
+  await assertSucceeds(deleteDoc(ref));
 });
 
 test("authenticated user cannot read or modify another user's expenses", async () => {
   const aliceDb = testEnv.authenticatedContext("alice_1").firestore();
   const bobDb = testEnv.authenticatedContext("bob_2").firestore();
-  
-  // Set up as Bob via testEnv admin or Bob
-  await assertSucceeds(bobDb.collection("users").doc("bob_2").collection("expenses").doc("exp_bob").set({
+  await assertSucceeds(setDoc(expenseDoc(bobDb, "bob_2", "exp_bob"), {
     userId: "bob_2",
     title: "Coffee",
     amount: 4.5,
@@ -100,13 +109,11 @@ test("authenticated user cannot read or modify another user's expenses", async (
     createdAt: new Date()
   }));
 
-  // Alice tries to read Bob's expense
-  await assertFails(aliceDb.collection("users").doc("bob_2").collection("expenses").doc("exp_bob").get());
-  // Alice tries to write to Bob's expenses
-  await assertFails(aliceDb.collection("users").doc("bob_2").collection("expenses").doc("exp_hack").set({
+  await assertFails(getDoc(expenseDoc(aliceDb, "bob_2", "exp_bob")));
+  await assertFails(setDoc(expenseDoc(aliceDb, "bob_2", "exp_hack"), {
     userId: "alice_1",
     title: "Hacked",
-    amount: 100.0,
+    amount: 100,
     category: "Other",
     date: "2026-10-24",
     type: "expense",
@@ -114,34 +121,28 @@ test("authenticated user cannot read or modify another user's expenses", async (
   }));
 });
 
-test("authenticated user can manage their savings goals", async () => {
-  const aliceDb = testEnv.authenticatedContext("alice_1").firestore();
-  const goalRef = aliceDb.collection("users").doc("alice_1").collection("savingsGoals").doc("goal_1");
-  await assertSucceeds(goalRef.set({
+test("authenticated user can manage their own savings goals", async () => {
+  const db = testEnv.authenticatedContext("alice_1").firestore();
+  const ref = savingsGoalDoc(db, "alice_1", "goal_1");
+  await assertSucceeds(setDoc(ref, {
     userId: "alice_1",
     title: "Emergency Fund",
-    targetAmount: 5000.0,
-    currentAmount: 1200.0,
+    targetAmount: 5000,
+    currentAmount: 1200,
     targetDate: "2026-12-31",
     category: "Emergency",
     colorHex: "#4CAF50",
     createdAt: new Date()
   }));
-
-  await assertSucceeds(goalRef.get());
-
-  await assertSucceeds(goalRef.update({
-    currentAmount: 1500.0
-  }));
-
-  await assertSucceeds(goalRef.delete());
+  await assertSucceeds(getDoc(ref));
+  await assertSucceeds(updateDoc(ref, { currentAmount: 1500 }));
+  await assertSucceeds(deleteDoc(ref));
 });
 
-
 test("expense ownership cannot be reassigned and unexpected fields are rejected", async () => {
-  const aliceDb = testEnv.authenticatedContext("alice_1").firestore();
-  const expenseRef = aliceDb.collection("users").doc("alice_1").collection("expenses").doc("exp_owned");
-  await assertSucceeds(expenseRef.set({
+  const db = testEnv.authenticatedContext("alice_1").firestore();
+  const ref = expenseDoc(db, "alice_1", "exp_owned");
+  await assertSucceeds(setDoc(ref, {
     userId: "alice_1",
     title: "Groceries",
     amount: 120.5,
@@ -151,15 +152,14 @@ test("expense ownership cannot be reassigned and unexpected fields are rejected"
     createdAt: new Date()
   }));
 
-  await assertFails(expenseRef.update({ userId: "bob_2" }));
-  await assertFails(expenseRef.update({ admin: true }));
+  await assertFails(updateDoc(ref, { userId: "bob_2" }));
+  await assertFails(updateDoc(ref, { admin: true }));
 });
 
 test("expense rules reject invalid amounts and oversized payload fields", async () => {
-  const aliceDb = testEnv.authenticatedContext("alice_1").firestore();
-  const expenses = aliceDb.collection("users").doc("alice_1").collection("expenses");
+  const db = testEnv.authenticatedContext("alice_1").firestore();
 
-  await assertFails(expenses.doc("negative").set({
+  await assertFails(setDoc(expenseDoc(db, "alice_1", "negative"), {
     userId: "alice_1",
     title: "Invalid negative amount",
     amount: -1,
@@ -169,7 +169,7 @@ test("expense rules reject invalid amounts and oversized payload fields", async 
     createdAt: new Date()
   }));
 
-  await assertFails(expenses.doc("too_large").set({
+  await assertFails(setDoc(expenseDoc(db, "alice_1", "too_large"), {
     userId: "alice_1",
     title: "Invalid amount",
     amount: 10000001,
@@ -179,7 +179,7 @@ test("expense rules reject invalid amounts and oversized payload fields", async 
     createdAt: new Date()
   }));
 
-  await assertFails(expenses.doc("oversized_note").set({
+  await assertFails(setDoc(expenseDoc(db, "alice_1", "oversized_note"), {
     userId: "alice_1",
     title: "Invalid note",
     amount: 10,
@@ -193,9 +193,9 @@ test("expense rules reject invalid amounts and oversized payload fields", async 
 
 test("unauthenticated users cannot access savings goals", async () => {
   const db = testEnv.unauthenticatedContext().firestore();
-  const goal = db.collection("users").doc("alice_1").collection("savingsGoals").doc("goal_1");
-  await assertFails(goal.get());
-  await assertFails(goal.set({
+  const ref = savingsGoalDoc(db, "alice_1", "goal_1");
+  await assertFails(getDoc(ref));
+  await assertFails(setDoc(ref, {
     userId: "alice_1",
     title: "Emergency Fund",
     targetAmount: 5000,
