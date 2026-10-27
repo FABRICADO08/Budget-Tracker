@@ -1,5 +1,21 @@
 version: 2
 updates:
+  # Monitor the pinned dependencies used by Firestore security-rule tests.
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "daily"
+      time: "04:30"
+      timezone: "Africa/Johannesburg"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "automated"
+      - "security"
+    commit-message:
+      prefix: "deps(npm)"
+      include: "scope"
+
   # Monitor and enforce updates for Gradle dependencies
   - package-ecosystem: "gradle"
     directory: "/"
