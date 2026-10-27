@@ -6,8 +6,8 @@ on:
       - main
 
 permissions:
-  pull-requests: write
-  contents: write
+  pull-requests: read
+  issues: write
 
 jobs:
   auto-rebase-on-main-push:

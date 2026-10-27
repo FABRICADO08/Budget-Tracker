@@ -1,0 +1,16 @@
+{
+  "name": "budget-tracker-firestore-rules-tests",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Isolated Firebase emulator tests for Budget Tracker Firestore security rules",
+  "scripts": {
+    "test:firestore-rules": "node --test firestore.test.js"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "6.0.0",
+    "firebase": "13.1.0"
+  },
+  "overrides": {
+    "@grpc/grpc-js": "1.14.6"
+  }
+}
