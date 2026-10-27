@@ -4,6 +4,41 @@ package com.example.data.importer
 object BankCsvParser {
     data class Row(val lineNumber: Int, val values: List<String>)
     data class ParsedStatement(val headers: List<String>, val rows: List<Row>, val delimiter: Char)
+    data class MoneyMovement(val amount: Double, val type: String)
+
+    /**
+     * Converts either a signed Amount column or separate Debit/Credit columns into one movement.
+     * For separate columns, the category is determined by the populated side, not by sign.
+     * Rows with invalid values, no movement, or both debit and credit populated are rejected.
+     */
+    fun parseMoneyMovement(
+        amountRaw: String?,
+        debitRaw: String? = null,
+        creditRaw: String? = null,
+        decimalComma: Boolean = false
+    ): MoneyMovement? {
+        if (debitRaw != null || creditRaw != null) {
+            val debitText = debitRaw.orEmpty().trim()
+            val creditText = creditRaw.orEmpty().trim()
+            if (debitText.isBlank() && creditText.isBlank()) return null
+
+            val debit = if (debitText.isBlank()) 0.0 else parseAmount(debitText, decimalComma) ?: return null
+            val credit = if (creditText.isBlank()) 0.0 else parseAmount(creditText, decimalComma) ?: return null
+            val hasDebit = kotlin.math.abs(debit) > 0.0
+            val hasCredit = kotlin.math.abs(credit) > 0.0
+
+            if (hasDebit == hasCredit) return null // both zero/blank or both sides populated
+            return if (hasDebit) {
+                MoneyMovement(kotlin.math.abs(debit), "expense")
+            } else {
+                MoneyMovement(kotlin.math.abs(credit), "income")
+            }
+        }
+
+        val parsed = amountRaw?.let { parseAmount(it, decimalComma) } ?: return null
+        if (parsed == 0.0) return null
+        return MoneyMovement(kotlin.math.abs(parsed), if (parsed < 0.0) "expense" else "income")
+    }
 
     /**
      * Parses CSV with quoted delimiters, escaped quotes and CRLF/LF line endings.

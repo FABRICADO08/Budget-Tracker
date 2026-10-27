@@ -50,6 +50,25 @@ class FinanceRulesTest {
     }
 
     @Test
+    fun csvMoneyMovementMapsSeparateDebitAndCreditColumnsSafely() {
+        assertEquals(
+            BankCsvParser.MoneyMovement(125.50, "expense"),
+            BankCsvParser.parseMoneyMovement(null, debitRaw = "125,50", creditRaw = "", decimalComma = true)
+        )
+        assertEquals(
+            BankCsvParser.MoneyMovement(2_000.0, "income"),
+            BankCsvParser.parseMoneyMovement(null, debitRaw = "", creditRaw = "2 000,00", decimalComma = true)
+        )
+        assertEquals(
+            BankCsvParser.MoneyMovement(42.25, "expense"),
+            BankCsvParser.parseMoneyMovement("-42.25")
+        )
+        assertNull(BankCsvParser.parseMoneyMovement(null, debitRaw = "100.00", creditRaw = "100.00"))
+        assertNull(BankCsvParser.parseMoneyMovement(null, debitRaw = "", creditRaw = ""))
+        assertNull(BankCsvParser.parseMoneyMovement(null, debitRaw = "invalid", creditRaw = ""))
+    }
+
+    @Test
     fun csvParserRejectsUnclosedQuotes() {
         val error = runCatching { BankCsvParser.parse("Date,Description\n2026-10-01,\"unfinished") }.exceptionOrNull()
         assertFalse(error == null)

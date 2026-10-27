@@ -7,6 +7,7 @@ import com.example.data.local.dao.LoanDao
 import com.example.data.local.dao.TransactionDao
 import com.example.data.local.entity.Loan
 import com.example.data.local.entity.Transaction
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.emptyFlow
@@ -69,6 +70,42 @@ class TransactionViewModel(
         if (userId.isBlank() || !transaction.amount.isFinite() || transaction.amount <= 0.0) return
         viewModelScope.launch {
             transactionDao.insert(transaction.copy(userId = userId))
+        }
+    }
+
+    /**
+     * Imports a reviewed batch through Room's list insert, so the database applies it atomically
+     * rather than leaving a partial import if one insert fails. Ownership is always the session UID.
+     */
+    fun insertAll(
+        items: List<Transaction>,
+        onComplete: ((Boolean) -> Unit)? = null
+    ) {
+        if (userId.isBlank() || items.isEmpty()) {
+            onComplete?.invoke(false)
+            return
+        }
+        val ownedItems = items.map { item ->
+            item.copy(userId = userId)
+        }
+        if (ownedItems.any {
+                !it.amount.isFinite() || it.amount <= 0.0 ||
+                    it.category.isBlank() || it.description.isBlank() ||
+                    it.date.isBlank() || it.type !in setOf("income", "expense")
+            }
+        ) {
+            onComplete?.invoke(false)
+            return
+        }
+        viewModelScope.launch {
+            try {
+                transactionDao.insertAll(ownedItems)
+                onComplete?.invoke(true)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                onComplete?.invoke(false)
+            }
         }
     }
 
