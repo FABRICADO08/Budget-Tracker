@@ -146,7 +146,7 @@ fun BankCsvImportDialog(
             }
             CsvImportPreviewState(
                 candidates = withoutExistingDuplicates,
-                invalidRowCount = mappedRows.count { it.second == null },
+                invalidRowCount = mappedRows.count { it.second.first == null },
                 duplicateRowCount = mappedRows.count { it.second != null } - withoutExistingDuplicates.size
             )
         }
