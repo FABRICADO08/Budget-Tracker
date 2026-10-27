@@ -39,7 +39,7 @@ object FinancialContextBuilder {
         val previousExpenseCount = previous.count { it.type.equals("expense", true) }
         val categoryTotals = current
             .filter { it.type.equals("expense", true) }
-            .groupBy { it.category.trim().ifBlank { "Other" } }
+            .groupBy { safeCategory(it.category) }
             .mapValues { (_, items) -> items.sumOf { it.amount } }
             .toList()
             .sortedByDescending { it.second }
@@ -93,6 +93,16 @@ object FinancialContextBuilder {
             appendLine("Use recorded totals as facts; explain estimates and assumptions; do not infer unrecorded purchases, guaranteed returns, or balances outside this summary.")
         }.trim().take(MAX_CONTEXT_LENGTH)
     }
+
+    // Category names are user-controlled. Flatten control characters and cap length so they
+    // cannot inject extra prompt lines or cause an unexpectedly large outbound context.
+    private fun safeCategory(value: String): String =
+        value.replace(Regex("[\\r\\n\\t]+"), " ")
+            .filterNot { it.isISOControl() }
+            .replace(Regex("\\s+"), " ")
+            .trim()
+            .take(60)
+            .ifBlank { "Other" }
 
     private fun parseMonth(date: String): YearMonth? =
         try {
