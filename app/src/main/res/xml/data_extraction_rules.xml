@@ -1,15 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <data-extraction-rules>
     <cloud-backup>
-        <!-- Keep local financial rows and local session credentials out of cloud app-data backup.
-             Users can export an authenticated, password-encrypted backup explicitly. -->
-        <exclude domain="database" path="." />
+        <!-- Avoid restoring local authentication/session credentials as part of an app-data backup. -->
         <exclude domain="sharedpref" path="." />
     </cloud-backup>
     <device-transfer>
-        <!-- Do not silently transfer locally stored financial records or auth preferences to a
-             different device. Use the application's password-protected restore flow instead. -->
-        <exclude domain="database" path="." />
+        <!-- Require authentication on the destination device instead of copying auth preferences. -->
         <exclude domain="sharedpref" path="." />
     </device-transfer>
 </data-extraction-rules>
