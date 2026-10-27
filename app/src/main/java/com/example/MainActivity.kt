@@ -171,13 +171,23 @@ import kotlinx.coroutines.launch
 
 class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
         try {
             configureAppCheck(this, intent)
         } catch (_: Exception) {
-            // Do not write provider or token-related exception details to device logs.
-            android.util.Log.w("MainActivity", "App Check initialization did not complete.")
+            // A release build must not continue into Firebase-backed screens without App Check.
+            android.util.Log.e("MainActivity", "Secure startup is unavailable.")
+            setContent {
+                BudgetTrackerTheme {
+                    androidx.compose.material3.Surface(modifier = Modifier.fillMaxSize()) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text("Secure startup failed. Check the app configuration and try again.")
+                        }
+                    }
+                }
+            }
+            return
         }
-        super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             BudgetTrackerTheme {
