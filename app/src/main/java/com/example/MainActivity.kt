@@ -406,11 +406,13 @@ fun TransactionApp(
                 backupBusy = true
                 backupError = null
                 runCatching {
-                    val output = context.contentResolver.openOutputStream(uri, "wt")
-                        ?: error("Unable to open the selected backup file.")
-                    output.use { stream ->
-                        stream.write(json.toByteArray(Charsets.UTF_8))
-                        stream.flush()
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                        val output = context.contentResolver.openOutputStream(uri, "wt")
+                            ?: error("Unable to open the selected backup file.")
+                        output.use { stream ->
+                            stream.write(json.toByteArray(Charsets.UTF_8))
+                            stream.flush()
+                        }
                     }
                 }.onSuccess {
                     Toast.makeText(context, "Finance backup exported.", Toast.LENGTH_LONG).show()
@@ -431,22 +433,24 @@ fun TransactionApp(
                 backupBusy = true
                 backupError = null
                 runCatching {
-                    val input = context.contentResolver.openInputStream(uri)
-                        ?: error("Unable to read the selected backup file.")
-                    val bytes = input.use { stream ->
-                        val output = java.io.ByteArrayOutputStream()
-                        val buffer = ByteArray(8192)
-                        var total = 0
-                        while (true) {
-                            val count = stream.read(buffer)
-                            if (count < 0) break
-                            total += count
-                            require(total <= FinanceBackupCryptography.MAX_ENCRYPTED_BACKUP_BYTES) {
-                                "Backup file is larger than the supported limit."
+                    val bytes = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                        val input = context.contentResolver.openInputStream(uri)
+                            ?: error("Unable to read the selected backup file.")
+                        input.use { stream ->
+                            val output = java.io.ByteArrayOutputStream()
+                            val buffer = ByteArray(8192)
+                            var total = 0
+                            while (true) {
+                                val count = stream.read(buffer)
+                                if (count < 0) break
+                                total += count
+                                require(total <= FinanceBackupCryptography.MAX_ENCRYPTED_BACKUP_BYTES) {
+                                    "Backup file is larger than the supported limit."
+                                }
+                                output.write(buffer, 0, count)
                             }
-                            output.write(buffer, 0, count)
+                            output.toByteArray()
                         }
-                        output.toByteArray()
                     }
                     val fileContents = String(bytes, Charsets.UTF_8)
                     if (FinanceBackupCryptography.isEncryptedBackup(fileContents)) {
