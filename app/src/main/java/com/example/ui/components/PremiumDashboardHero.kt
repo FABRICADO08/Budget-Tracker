@@ -15,8 +15,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.automirrored.filled.ChevronLeft
-import androidx.compose.material.icons.automirrored.filled.ChevronRight
+import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.ReceiptLong
@@ -93,7 +93,7 @@ fun PremiumDashboardHero(
                         modifier = Modifier.size(36.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ChevronLeft,
+                            imageVector = Icons.Default.ChevronLeft,
                             contentDescription = "Previous month",
                             tint = Color.White
                         )
@@ -109,7 +109,7 @@ fun PremiumDashboardHero(
                         modifier = Modifier.size(36.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ChevronRight,
+                            imageVector = Icons.Default.ChevronRight,
                             contentDescription = "Next month",
                             tint = Color.White
                         )
