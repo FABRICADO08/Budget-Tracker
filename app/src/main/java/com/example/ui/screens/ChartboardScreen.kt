@@ -37,10 +37,10 @@ import androidx.compose.material.icons.filled.HomeRepairService
 import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.Receipt
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material.icons.filled.TrendingDown
-import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -287,7 +287,7 @@ fun ChartboardScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Icon(
-                                        imageVector = if (momDifference <= 0) Icons.Default.TrendingDown else Icons.Default.TrendingUp,
+                                        imageVector = if (momDifference <= 0) Icons.AutoMirrored.Filled.TrendingDown else Icons.AutoMirrored.Filled.TrendingUp,
                                         contentDescription = null,
                                         tint = if (momDifference <= 0) IncomeGreen else ExpenseRed,
                                         modifier = Modifier.size(16.dp)

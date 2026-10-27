@@ -13,13 +13,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ReceiptLong
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.IconButton
-import androidx.compose.material.icons.filled.TrendingUp
-import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -81,7 +81,7 @@ fun PremiumDashboardHero(
                         Text("GOOD TO SEE YOU", style = MaterialTheme.typography.labelSmall, color = Color(0xFFB7F7D8), fontWeight = FontWeight.Bold)
                         Text("Hi, ${userName.ifBlank { "there" }}", style = MaterialTheme.typography.titleLarge, color = Color.White, fontWeight = FontWeight.Bold)
                     }
-                    Icon(Icons.Default.TrendingUp, contentDescription = null, tint = Color(0xFF8EF0C1))
+                    Icon(Icons.AutoMirrored.Filled.TrendingUp, contentDescription = null, tint = Color(0xFF8EF0C1))
                 }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -125,7 +125,7 @@ fun PremiumDashboardHero(
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Surface(color = Color.White.copy(alpha = 0.12f), shape = RoundedCornerShape(14.dp)) {
                         Row(Modifier.padding(horizontal = 12.dp, vertical = 9.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.ReceiptLong, contentDescription = null, tint = Color(0xFFB7F7D8))
+                            Icon(Icons.AutoMirrored.Filled.ReceiptLong, contentDescription = null, tint = Color(0xFFB7F7D8))
                             Spacer(Modifier.width(7.dp))
                             Text("$transactionCount transactions", color = Color.White, style = MaterialTheme.typography.labelLarge)
                         }

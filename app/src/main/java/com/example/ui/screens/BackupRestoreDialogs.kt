@@ -88,7 +88,7 @@ fun BackupRestoreConfirmationDialog(
     onConfirm: () -> Unit,
     onCancel: () -> Unit
 ) {
-    val date = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale("en", "ZA"))
+    val date = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.forLanguageTag("en-ZA"))
         .format(Date(preview.createdAtMillis))
     AlertDialog(
         onDismissRequest = { if (!busy) onCancel() },

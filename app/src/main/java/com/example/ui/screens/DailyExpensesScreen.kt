@@ -29,6 +29,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Delete
@@ -40,8 +42,6 @@ import androidx.compose.material.icons.filled.LocalAtm
 import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material.icons.filled.TrendingDown
-import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -484,7 +484,7 @@ fun ExpenseItemCard(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = if (isIncome) Icons.Default.TrendingUp else getCategoryIcon(expense.category),
+                    imageVector = if (isIncome) Icons.AutoMirrored.Filled.TrendingUp else getCategoryIcon(expense.category),
                     contentDescription = expense.category,
                     tint = if (isIncome) IncomeGreen else MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(24.dp)

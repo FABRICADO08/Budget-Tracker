@@ -296,7 +296,7 @@ private fun MappingDropdown(
             readOnly = true,
             label = { Text(label) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedField == field) },
-            modifier = Modifier.menuAnchor().fillMaxWidth(),
+            modifier = Modifier.menuAnchor(androidx.compose.material3.MenuAnchorType.PrimaryNotEditable, true).fillMaxWidth(),
             singleLine = true
         )
         ExposedDropdownMenu(expanded = expandedField == field, onDismissRequest = { onExpanded(null) }) {

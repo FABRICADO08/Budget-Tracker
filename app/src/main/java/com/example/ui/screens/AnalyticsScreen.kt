@@ -18,10 +18,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.Insights
-import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Button
@@ -366,7 +366,7 @@ fun AnalyticsScreen(
                             .testTag("sign_out_button"),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Icon(imageVector = Icons.Default.Logout, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Icon(imageVector = Icons.AutoMirrored.Filled.Logout, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Sign Out")
                     }

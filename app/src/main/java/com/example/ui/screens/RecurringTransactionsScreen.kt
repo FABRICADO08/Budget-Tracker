@@ -17,10 +17,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -138,7 +138,7 @@ fun RecurringTransactionsScreen(
                             readOnly = true,
                             label = { Text("Category") },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryMenu) },
-                            modifier = Modifier.menuAnchor().fillMaxWidth()
+                            modifier = Modifier.menuAnchor(androidx.compose.material3.MenuAnchorType.PrimaryNotEditable, true).fillMaxWidth()
                         )
                         ExposedDropdownMenu(expanded = categoryMenu, onDismissRequest = { categoryMenu = false }) {
                             listOf("Bills & Utilities", "Housing", "Groceries", "Transportation", "Entertainment", "Health", "Income", "Other").forEach {
@@ -153,7 +153,7 @@ fun RecurringTransactionsScreen(
                             readOnly = true,
                             label = { Text("Repeat") },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = frequencyMenu) },
-                            modifier = Modifier.menuAnchor().fillMaxWidth()
+                            modifier = Modifier.menuAnchor(androidx.compose.material3.MenuAnchorType.PrimaryNotEditable, true).fillMaxWidth()
                         )
                         ExposedDropdownMenu(expanded = frequencyMenu, onDismissRequest = { frequencyMenu = false }) {
                             listOf("WEEKLY", "BIWEEKLY", "MONTHLY", "QUARTERLY", "ANNUALLY").forEach {
@@ -269,7 +269,7 @@ fun RecurringTransactionsScreen(
                 item {
                     Card(shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Icon(Icons.Default.ReceiptLong, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            Icon(Icons.AutoMirrored.Filled.ReceiptLong, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                             Text("Nothing scheduled yet", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                             Text("Add rent, subscriptions, insurance or a recurring income source to start tracking due dates.", style = MaterialTheme.typography.bodyMedium)
                             Button(onClick = { showEditor = true }) { Text("Add first schedule") }

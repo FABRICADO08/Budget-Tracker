@@ -84,7 +84,7 @@ class RecurringReminderWorker(
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
                 val overdue = schedule.nextDueDate < today
-                val amountText = String.format(Locale("en", "ZA"), "R %,.2f", schedule.amount)
+                val amountText = String.format(Locale.forLanguageTag("en-ZA"), "R %,.2f", schedule.amount)
                 val title = when {
                     overdue -> if (schedule.type == "income") "Expected income overdue" else "Bill overdue"
                     schedule.type == "income" -> "Income expected soon"

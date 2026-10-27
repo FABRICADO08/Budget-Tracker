@@ -31,7 +31,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
@@ -54,7 +56,6 @@ import androidx.compose.material.icons.filled.HourglassTop
 import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.LocalAtm
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Receipt
@@ -1793,7 +1794,7 @@ fun ProfileSecurityDialog(
                 onClick = onSignOut,
                 colors = ButtonDefaults.textButtonColors(contentColor = ExpenseRed)
             ) {
-                Icon(imageVector = Icons.Default.Logout, contentDescription = null, modifier = Modifier.size(16.dp))
+                Icon(imageVector = Icons.AutoMirrored.Filled.Logout, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(6.dp))
                 Text("Sign Out")
             }
@@ -2531,7 +2532,7 @@ fun LoanListItem(
                             shape = RoundedCornerShape(12.dp),
                             contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
                         ) {
-                            Icon(imageVector = Icons.Default.Send, contentDescription = "Remind", modifier = Modifier.size(14.dp))
+                            Icon(imageVector = Icons.AutoMirrored.Filled.Send, contentDescription = "Remind", modifier = Modifier.size(14.dp))
                             Spacer(modifier = Modifier.width(4.dp))
                             Text("Remind", fontSize = 12.sp)
                         }
