@@ -91,11 +91,18 @@ class RecurringReminderWorker(
                     else -> "Bill due soon"
                 }
                 val detail = "${schedule.description} · ${schedule.nextDueDate} · $amountText"
+                val publicNotification = NotificationCompat.Builder(applicationContext, REMINDER_CHANNEL_ID)
+                    .setSmallIcon(android.R.drawable.ic_dialog_info)
+                    .setContentTitle("Budget Tracker reminder")
+                    .setContentText("Open the app to view your reminder.")
+                    .build()
                 val notification = NotificationCompat.Builder(applicationContext, REMINDER_CHANNEL_ID)
                     .setSmallIcon(android.R.drawable.ic_dialog_info)
                     .setContentTitle(title)
                     .setContentText(detail)
                     .setStyle(NotificationCompat.BigTextStyle().bigText(detail))
+                    .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+                    .setPublicVersion(publicNotification)
                     .setContentIntent(openApp)
                     .setAutoCancel(true)
                     .setPriority(NotificationCompat.PRIORITY_DEFAULT)
