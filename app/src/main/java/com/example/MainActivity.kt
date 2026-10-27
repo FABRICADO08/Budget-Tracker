@@ -457,7 +457,7 @@ fun TransactionApp(
                         showBackupPasswordDialog = true
                     } else {
                         // Backward compatibility: existing versioned plaintext JSON backups remain importable.
-                        val preview = backupManager.inspectBackup(fileContents)
+                        val preview = backupManager.inspectBackupOffMainThread(fileContents)
                         restoreBackupJson = fileContents
                         restoreBackupPreview = preview
                         restoreMode = BackupRestoreMode.MERGE
@@ -1267,8 +1267,8 @@ fun TransactionApp(
                             BackupPasswordMode.RESTORE -> {
                                 val encrypted = pendingEncryptedBackup
                                     ?: error("Select an encrypted backup file again.")
-                                val clearJson = FinanceBackupCryptography.decrypt(encrypted, password)
-                                val preview = backupManager.inspectBackup(clearJson)
+                                val clearJson = backupManager.decryptEncryptedBackup(encrypted, password)
+                                val preview = backupManager.inspectBackupOffMainThread(clearJson)
                                 restoreBackupJson = clearJson
                                 restoreBackupPreview = preview
                                 restoreMode = BackupRestoreMode.MERGE
