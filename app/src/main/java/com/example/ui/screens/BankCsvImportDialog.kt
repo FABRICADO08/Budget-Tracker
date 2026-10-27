@@ -188,9 +188,9 @@ fun BankCsvImportDialog(
                         }
                         Column(Modifier.weight(1f)) {
                             MappingDropdown("Credit column (optional)", parsed.headers, creditColumn, "credit", expandedField, { expandedField = it }) { creditColumn = it }
-                    MappingDropdown("Balance column (optional)", parsed.headers, balanceColumn, "balance", expandedField, { expandedField = it }) { balanceColumn = it }
                         }
                     }
+                    MappingDropdown("Balance column (optional)", parsed.headers, balanceColumn, "balance", expandedField, { expandedField = it }) { balanceColumn = it }
                     MappingDropdown("Category column (optional)", parsed.headers, categoryColumn, "category", expandedField, { expandedField = it }) { categoryColumn = it }
                     MappingDropdown("Type column (optional)", parsed.headers, typeColumn, "type", expandedField, { expandedField = it }) { typeColumn = it }
                     TextButton(onClick = { decimalComma = !decimalComma }) {
