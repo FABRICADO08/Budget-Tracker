@@ -13,6 +13,36 @@ interface LoanDao {
     @Query("SELECT * FROM loans WHERE user_id = :userId ORDER BY is_repaid ASC, created_at DESC")
     fun getAllLoans(userId: String): Flow<List<Loan>>
 
+    /**
+     * Computes principal, recovered and outstanding totals from original loans plus the repayment
+     * ledger. Explicitly marked-repaid legacy loans count as fully recovered even if they have no
+     * historical repayment rows. Recorded repayments are capped at principal to avoid negative debt.
+     */
+    @Query("""
+        SELECT
+            COALESCE(SUM(l.amount), 0.0) AS total_principal,
+            COALESCE(SUM(
+                CASE
+                    WHEN l.is_repaid = 1 THEN l.amount
+                    ELSE MIN(COALESCE(r.repaid_amount, 0.0), l.amount)
+                END
+            ), 0.0) AS total_recovered,
+            COALESCE(SUM(
+                CASE
+                    WHEN l.is_repaid = 1 THEN 0.0
+                    ELSE MAX(l.amount - COALESCE(r.repaid_amount, 0.0), 0.0)
+                END
+            ), 0.0) AS total_outstanding
+        FROM loans l
+        LEFT JOIN (
+            SELECT loan_id, SUM(amount) AS repaid_amount
+            FROM loan_repayments
+            GROUP BY loan_id
+        ) r ON r.loan_id = l.id
+        WHERE l.user_id = :userId
+    """)
+    fun observeRecoverySummaryForUser(userId: String): Flow<LoanRecoverySummary>
+
     @Query("SELECT * FROM loans WHERE user_id = :userId ORDER BY is_repaid ASC, created_at DESC")
     suspend fun getAllForBackup(userId: String): List<Loan>
 
