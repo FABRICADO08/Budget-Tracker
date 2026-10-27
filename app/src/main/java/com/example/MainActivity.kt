@@ -121,6 +121,7 @@ import androidx.credentials.CredentialManager
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.data.local.database.AppDatabase
+import com.example.data.local.dao.LoanRecoverySummary
 import com.example.data.backup.BackupRestoreMode
 import com.example.data.backup.FinanceBackupManager
 import com.example.data.backup.FinanceBackupCryptography
@@ -480,6 +481,7 @@ fun TransactionApp(
 
     val transactions by viewModel.transactions.collectAsState()
     val loans by viewModel.loans.collectAsState()
+    val loanRecoverySummary by viewModel.loanRecoverySummary.collectAsState()
 
     // Optional AI context is computed only from the active user's already-scoped Room stream.
     // It contains aggregated totals/categories, never transaction descriptions or merchant names.
@@ -511,7 +513,7 @@ fun TransactionApp(
     }
 
     val totalExpense = transactions.filter { it.type == "expense" }.sumOf { it.amount }
-    val totalPendingLoans = loans.filter { !it.isRepaid }.sumOf { it.amount }
+    val totalPendingLoans = loanRecoverySummary.totalOutstanding
     val currentMonthPrefix = remember { SimpleDateFormat("yyyy-MM", Locale.ROOT).format(Date()) }
     val currentMonthTransactions = remember(transactions, currentMonthPrefix) {
         transactions.filter { it.date.startsWith(currentMonthPrefix) }
@@ -1080,6 +1082,7 @@ fun TransactionApp(
                     ChartboardScreen(
                         transactions = transactions,
                         loans = loans,
+                        loanRecoverySummary = loanRecoverySummary,
                         onAskAiAdvisor = { prompt ->
                             aiPendingPrompt = prompt
                             selectedTab = 3
@@ -2515,8 +2518,9 @@ fun LoanListItem(
 
 @Composable
 private fun LoanRepaymentBalance(database: AppDatabase, loan: Loan, userId: String) {
-    val paid by database.loanRepaymentDao().observeTotalForLoan(loan.id, userId).collectAsState(initial = 0.0)
-    val remaining = (loan.amount - paid).coerceAtLeast(0.0)
+    val recordedPaid by database.loanRepaymentDao().observeTotalForLoan(loan.id, userId).collectAsState(initial = 0.0)
+    val paid = if (loan.isRepaid) loan.amount else recordedPaid.coerceIn(0.0, loan.amount.coerceAtLeast(0.0))
+    val remaining = if (loan.isRepaid) 0.0 else (loan.amount - recordedPaid).coerceAtLeast(0.0)
     Text(
         text = "Received R%.2f · Remaining R%.2f".format(paid, remaining),
         style = MaterialTheme.typography.bodySmall,
