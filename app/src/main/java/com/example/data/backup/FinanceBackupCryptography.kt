@@ -42,8 +42,12 @@ object FinanceBackupCryptography {
         // New envelopes always put "format" first. Inspect only a small prefix rather than parsing
         // a potentially 36 MB base64 payload on the UI thread.
         val prefix = contents.take(1024)
-        return Regex("\\"format\\"\\s*:\\s*\\"$ENCRYPTED_FORMAT\\"")
-            .containsMatchIn(prefix)
+        val formatKey = "\"format\""
+        val keyIndex = prefix.indexOf(formatKey)
+        if (keyIndex < 0) return false
+        val valueStart = prefix.indexOf(':', keyIndex + formatKey.length)
+        if (valueStart < 0) return false
+        return prefix.substring(valueStart + 1).trimStart().startsWith("\"$ENCRYPTED_FORMAT\"")
     }
 
     /** Encrypts a plaintext, versioned finance backup into a self-describing JSON envelope. */
