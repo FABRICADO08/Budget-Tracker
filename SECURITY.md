@@ -13,14 +13,12 @@ Security updates and patches are actively maintained on the `main` branch and ac
 
 ## Automated Security & Quality Enforcement
 
-This repository implements multi-layered continuous security and dependency enforcement:
-
-1. **Dependabot Daily Tracking**: Dependabot scans both Gradle dependencies (`build.gradle.kts`, `gradle/libs.versions.toml`) and GitHub Actions workflows on a daily cadence.
-2. **Automated Dependabot Merge & Enforcement**: Minor, patch, and security pull requests opened by Dependabot are automatically analyzed, reviewed, and queued for auto-merge upon passing all CI and CodeQL status checks.
-3. **CodeQL Advanced Static Analysis**: Continuous CodeQL scanning monitors both `java-kotlin` (Android application logic) and `actions` (CI/CD workflows) using the extended `security-and-quality` rulesets.
-4. **Pull Request Dependency Review**: PRs introducing third-party dependencies are blocked if any moderate or higher severity CVEs are present.
+1. **Dependabot tracking**: Dependabot checks Gradle, npm test dependencies, and GitHub Actions on a daily schedule.
+2. **Human review for dependency updates**: Dependabot opens update pull requests, but the repository does not automatically approve or merge them. Review dependency changes and require passing CI/security checks before merging.
+3. **CodeQL scanning**: GitHub's repository-level default CodeQL setup is enabled. There is no duplicate custom CodeQL workflow, because GitHub rejects advanced-configuration SARIF uploads while default setup is active.
+4. **Pull Request Dependency Review**: Pull requests introducing or updating third-party dependencies are checked for known vulnerabilities.
 5. **Pinned CI actions**: GitHub Actions workflows pin third-party actions to immutable commit SHAs to reduce supply-chain risk.
-6. **Dependency constraints**: Transitive security-sensitive libraries are constrained to reviewed versions in Gradle; version bumps must be tested and reviewed before merging.
+6. **Dependency constraints**: Security-sensitive transitive libraries are aligned to reviewed versions in Gradle. Dependency upgrades must be tested and reviewed before merging.
 
 ---
 
