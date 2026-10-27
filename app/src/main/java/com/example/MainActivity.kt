@@ -123,6 +123,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.data.local.database.AppDatabase
 import com.example.data.backup.BackupRestoreMode
 import com.example.data.backup.FinanceBackupManager
+import com.example.data.backup.FinanceBackupCryptography
 import com.example.data.backup.FinanceBackupPreview
 import com.example.data.repository.BudgetRepository
 import com.example.data.local.repository.LegacyDataOwnershipRepository
@@ -136,6 +137,8 @@ import com.example.ui.components.PremiumDashboardHero
 import com.example.ui.screens.AiChatScreen
 import com.example.ui.screens.BackupRestoreDialog
 import com.example.ui.screens.BackupRestoreConfirmationDialog
+import com.example.ui.screens.BackupPasswordDialog
+import com.example.ui.screens.BackupPasswordMode
 import com.example.ui.screens.ChartboardScreen
 import com.example.ui.screens.BankCsvImportDialog
 import com.example.ui.screens.CategoryBudgetsScreen
@@ -357,6 +360,9 @@ fun TransactionApp(
         FinanceBackupManager(context, database, BudgetRepository(context))
     }
     var showBackupRestoreDialog by remember { mutableStateOf(false) }
+    var showBackupPasswordDialog by remember { mutableStateOf(false) }
+    var backupPasswordMode by remember { mutableStateOf(BackupPasswordMode.CREATE) }
+    var pendingEncryptedBackup by remember { mutableStateOf<String?>(null) }
     var backupBusy by remember { mutableStateOf(false) }
     var backupError by remember { mutableStateOf<String?>(null) }
     var pendingBackupJson by remember { mutableStateOf<String?>(null) }
@@ -435,19 +441,28 @@ fun TransactionApp(
                             val count = stream.read(buffer)
                             if (count < 0) break
                             total += count
-                            require(total <= FinanceBackupManager.MAX_BACKUP_BYTES) {
-                                "Backup is larger than the supported 25 MB limit."
+                            require(total <= FinanceBackupCryptography.MAX_ENCRYPTED_BACKUP_BYTES) {
+                                "Backup file is larger than the supported limit."
                             }
                             output.write(buffer, 0, count)
                         }
                         output.toByteArray()
                     }
-                    val json = String(bytes, Charsets.UTF_8)
-                    val preview = backupManager.inspectBackup(json)
-                    restoreBackupJson = json
-                    restoreBackupPreview = preview
-                    restoreMode = BackupRestoreMode.MERGE
-                    showBackupRestoreDialog = false
+                    val fileContents = String(bytes, Charsets.UTF_8)
+                    if (FinanceBackupCryptography.isEncryptedBackup(fileContents)) {
+                        pendingEncryptedBackup = fileContents
+                        backupPasswordMode = BackupPasswordMode.RESTORE
+                        backupError = null
+                        showBackupRestoreDialog = false
+                        showBackupPasswordDialog = true
+                    } else {
+                        // Backward compatibility: existing versioned plaintext JSON backups remain importable.
+                        val preview = backupManager.inspectBackup(fileContents)
+                        restoreBackupJson = fileContents
+                        restoreBackupPreview = preview
+                        restoreMode = BackupRestoreMode.MERGE
+                        showBackupRestoreDialog = false
+                    }
                 }.onFailure {
                     backupError = it.message ?: "Could not read or validate this backup."
                     showBackupRestoreDialog = true
@@ -1217,26 +1232,74 @@ fun TransactionApp(
             busy = backupBusy,
             error = backupError,
             onCreateBackup = {
-                coroutineScope.launch {
-                    backupBusy = true
-                    backupError = null
-                    runCatching { backupManager.createBackup(currentUser.uid) }
-                        .onSuccess { json ->
-                            pendingBackupJson = json
-                            val timestamp = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.ROOT).format(Date())
-                            createBackupLauncher.launch("budget-tracker-backup-$timestamp.json")
-                        }
-                        .onFailure {
-                            backupError = it.message ?: "Could not prepare the backup."
-                        }
-                    backupBusy = false
-                }
+                backupError = null
+                backupPasswordMode = BackupPasswordMode.CREATE
+                showBackupRestoreDialog = false
+                showBackupPasswordDialog = true
             },
             onSelectBackup = {
                 backupError = null
                 openBackupLauncher.launch(arrayOf("application/json", "text/json", "text/plain"))
             },
             onDismiss = { if (!backupBusy) { showBackupRestoreDialog = false; backupError = null } }
+        )
+    }
+
+    if (showBackupPasswordDialog) {
+        BackupPasswordDialog(
+            mode = backupPasswordMode,
+            busy = backupBusy,
+            error = backupError,
+            onConfirm = { password ->
+                val mode = backupPasswordMode
+                showBackupPasswordDialog = false
+                coroutineScope.launch {
+                    backupBusy = true
+                    backupError = null
+                    try {
+                        when (mode) {
+                            BackupPasswordMode.CREATE -> {
+                                val encrypted = backupManager.createEncryptedBackup(currentUser.uid, password)
+                                pendingBackupJson = encrypted
+                                val timestamp = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.ROOT).format(Date())
+                                createBackupLauncher.launch("budget-tracker-encrypted-backup-$timestamp.json")
+                            }
+                            BackupPasswordMode.RESTORE -> {
+                                val encrypted = pendingEncryptedBackup
+                                    ?: error("Select an encrypted backup file again.")
+                                val clearJson = FinanceBackupCryptography.decrypt(encrypted, password)
+                                val preview = backupManager.inspectBackup(clearJson)
+                                restoreBackupJson = clearJson
+                                restoreBackupPreview = preview
+                                restoreMode = BackupRestoreMode.MERGE
+                                pendingEncryptedBackup = null
+                                showBackupRestoreDialog = false
+                            }
+                        }
+                    } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                        throw cancelled
+                    } catch (failure: Exception) {
+                        backupError = failure.message ?: "The backup operation failed."
+                        if (mode == BackupPasswordMode.RESTORE) {
+                            // Keep the selected file so the user can retry after a password typo.
+                            showBackupPasswordDialog = true
+                        } else {
+                            showBackupRestoreDialog = true
+                        }
+                    } finally {
+                        password.fill(0.toChar())
+                        backupBusy = false
+                    }
+                }
+            },
+            onDismiss = {
+                if (!backupBusy) {
+                    showBackupPasswordDialog = false
+                    pendingEncryptedBackup = null
+                    backupError = null
+                    showBackupRestoreDialog = true
+                }
+            }
         )
     }
 
