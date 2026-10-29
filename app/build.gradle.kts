@@ -166,8 +166,30 @@ dependencies {
   "ksp"(libs.moshi.kotlin.codegen)
 }
 
+// Force ASM modules to a Java 27 class-file-aware release for Robolectric and test tooling.
+configurations.configureEach {
+  resolutionStrategy.eachDependency {
+    if (requested.group == "org.ow2.asm" && requested.version != "9.11.1") {
+      useVersion("9.11.1")
+      because("Keep bytecode parsing compatible with the latest stable JDK and receive upstream parser fixes")
+    }
+  }
+}
+
 tasks.withType<Test> {
   failFast = true
   timeout.set(Duration.ofMinutes(2))
+  jvmArgs(
+    "--enable-native-access=ALL-UNNAMED",
+    "--add-opens=java.base/java.lang=ALL-UNNAMED",
+    "--add-opens=java.base/java.util=ALL-UNNAMED",
+    "--add-opens=java.base/java.io=ALL-UNNAMED",
+    "--add-opens=java.base/java.net=ALL-UNNAMED",
+    "--add-opens=java.base/java.security=ALL-UNNAMED",
+    "--add-opens=java.base/java.text=ALL-UNNAMED",
+    "--add-opens=java.base/jdk.internal.access=ALL-UNNAMED",
+    "--add-opens=java.desktop/java.awt.font=ALL-UNNAMED",
+    "--add-opens=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED"
+  )
   testLogging { events("passed", "failed", "skipped") }
 }

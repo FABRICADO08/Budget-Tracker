@@ -243,9 +243,9 @@ fun RecurringTransactionsScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.CalendarMonth, contentDescription = null)
                             Spacer(Modifier.width(10.dp))
-                            Text("Bills & recurring money", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                            Text("Recurring payments", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                         }
-                        Text("Plan predictable costs, keep due dates visible, and record each payment once.", style = MaterialTheme.typography.bodyMedium)
+                        Text("Manage regular expenses and income, track upcoming dates and keep each payment accounted for.", style = MaterialTheme.typography.bodyMedium)
                         Text("${schedules.count { it.isActive }} active schedules", style = MaterialTheme.typography.labelLarge)
                         TextButton(
                             onClick = {

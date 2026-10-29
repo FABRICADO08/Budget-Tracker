@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.ui.components.EnterprisePageHeader
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
@@ -102,6 +104,14 @@ fun SavingsGoalsScreen(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        item {
+            EnterprisePageHeader(
+                eyebrow = "SAVINGS",
+                title = "Savings goals",
+                subtitle = "Set a target, track progress and celebrate every milestone."
+            )
+        }
+
         // 1. Top Savings Summary Card
         item {
             SavingsSummaryBanner(

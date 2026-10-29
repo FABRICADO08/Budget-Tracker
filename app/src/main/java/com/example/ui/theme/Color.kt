@@ -2,51 +2,51 @@ package com.example.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Light palette
-val EmeraldPrimaryLight = Color(0xFF006D44)
+// Enterprise finance palette: deep evergreen, calm neutrals, restrained brass accents.
+val EmeraldPrimaryLight = Color(0xFF145C46)
 val EmeraldOnPrimaryLight = Color(0xFFFFFFFF)
-val EmeraldContainerLight = Color(0xFF90F7BF)
-val EmeraldOnContainerLight = Color(0xFF002111)
+val EmeraldContainerLight = Color(0xFFDCEFE6)
+val EmeraldOnContainerLight = Color(0xFF103B2D)
 
-val GoldSecondaryLight = Color(0xFF7A5900)
+val GoldSecondaryLight = Color(0xFF775A1D)
 val GoldOnSecondaryLight = Color(0xFFFFFFFF)
-val GoldContainerLight = Color(0xFFFFDEA3)
-val GoldOnContainerLight = Color(0xFF261900)
+val GoldContainerLight = Color(0xFFF3E8CC)
+val GoldOnContainerLight = Color(0xFF33270C)
 
-val TealTertiaryLight = Color(0xFF006874)
+val TealTertiaryLight = Color(0xFF286B72)
 val TealOnTertiaryLight = Color(0xFFFFFFFF)
-val TealContainerLight = Color(0xFF97F0FF)
-val TealOnContainerLight = Color(0xFF001F24)
+val TealContainerLight = Color(0xFFD9EEF0)
+val TealOnContainerLight = Color(0xFF113B40)
 
-val BackgroundLight = Color(0xFFF7FAF7)
+val BackgroundLight = Color(0xFFF4F7F5)
 val SurfaceLight = Color(0xFFFFFFFF)
-val SurfaceVariantLight = Color(0xFFDCE5DD)
-val OutlineLight = Color(0xFF717972)
+val SurfaceVariantLight = Color(0xFFE9EFEB)
+val OutlineLight = Color(0xFF77847C)
 
-// Dark palette
-val EmeraldPrimaryDark = Color(0xFF74DAA4)
-val EmeraldOnPrimaryDark = Color(0xFF003920)
-val EmeraldContainerDark = Color(0xFF005232)
-val EmeraldOnContainerDark = Color(0xFF90F7BF)
+// Dark palette tuned for legibility and reduced visual glare.
+val EmeraldPrimaryDark = Color(0xFFA6DCC3)
+val EmeraldOnPrimaryDark = Color(0xFF073B2A)
+val EmeraldContainerDark = Color(0xFF184C3A)
+val EmeraldOnContainerDark = Color(0xFFDCEFE6)
 
-val GoldSecondaryDark = Color(0xFFF5BE48)
-val GoldOnSecondaryDark = Color(0xFF412D00)
-val GoldContainerDark = Color(0xFF5D4200)
-val GoldOnContainerDark = Color(0xFFFFDEA3)
+val GoldSecondaryDark = Color(0xFFE7C980)
+val GoldOnSecondaryDark = Color(0xFF3D2E0D)
+val GoldContainerDark = Color(0xFF5B481D)
+val GoldOnContainerDark = Color(0xFFF3E8CC)
 
-val TealTertiaryDark = Color(0xFF4FD8EB)
-val TealOnTertiaryDark = Color(0xFF00363D)
-val TealContainerDark = Color(0xFF004F58)
-val TealOnContainerDark = Color(0xFF97F0FF)
+val TealTertiaryDark = Color(0xFF9DDCE1)
+val TealOnTertiaryDark = Color(0xFF07393E)
+val TealContainerDark = Color(0xFF214F54)
+val TealOnContainerDark = Color(0xFFD9EEF0)
 
-val BackgroundDark = Color(0xFF0F1511)
-val SurfaceDark = Color(0xFF131A15)
-val SurfaceVariantDark = Color(0xFF414943)
-val OutlineDark = Color(0xFF8B938C)
+val BackgroundDark = Color(0xFF101814)
+val SurfaceDark = Color(0xFF17211B)
+val SurfaceVariantDark = Color(0xFF28352D)
+val OutlineDark = Color(0xFF8C9C91)
 
-// Semantic finance colors
-val ExpenseRed = Color(0xFFE11D48)
-val IncomeGreen = Color(0xFF059669)
-val GoalGold = Color(0xFFD97706)
-val SavingsTeal = Color(0xFF0284C7)
-val CategoryPurple = Color(0xFF7C3AED)
+// Semantic financial states, kept distinct from brand colors.
+val ExpenseRed = Color(0xFFB4233C)
+val IncomeGreen = Color(0xFF14815C)
+val GoalGold = Color(0xFF966A0B)
+val SavingsTeal = Color(0xFF176C83)
+val CategoryPurple = Color(0xFF6654A3)

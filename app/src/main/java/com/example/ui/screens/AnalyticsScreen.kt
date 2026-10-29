@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.ui.components.EnterprisePageHeader
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -91,6 +93,14 @@ fun AnalyticsScreen(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        item {
+            EnterprisePageHeader(
+                eyebrow = "ANALYTICS",
+                title = "Spending performance",
+                subtitle = "Understand category trends and adjust your daily target with confidence."
+            )
+        }
+
         // 1. Budget Settings Card
         item {
             Card(
