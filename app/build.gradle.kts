@@ -99,7 +99,7 @@ dependencies {
     implementation(libs.netty.common) { because("Fix DoS vulnerabilities") }
     implementation(libs.netty.handler.proxy) { because("Fix HTTP header injection") }
     implementation(libs.jdom2) { because("Fix XXE injection CVE-2021-33813") }
-    implementation(libs.jose4j) { because("Fix DoS via compressed JWE CVE-2023-31582") }
+    implementation(libs.jose4j) { because("Fix DoS via compressed JWE CVE-2024-29371") }
     implementation(libs.commons.lang3) { because("Fix uncontrolled recursion CVE-2024-57541") }
     implementation(libs.httpclient) { because("Fix CVE-2020-13956") }
   }

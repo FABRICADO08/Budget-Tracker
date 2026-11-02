@@ -16,6 +16,22 @@ allprojects {
           useVersion("4.2.19.Final")
           because("Align Netty modules to the patched 4.2.19.Final security release")
         }
+        if (requested.group == "com.google.guava" && requested.name == "guava") {
+          // Guava ships -jre and -android flavors; keep the requested flavor and only
+          // upgrade versions older than the patched 33.7.2 release.
+          val requestedVersion = requested.version ?: ""
+          val parts = requestedVersion.removeSuffix("-jre").removeSuffix("-android")
+            .split(".").map { it.toIntOrNull() ?: 0 }
+          val target = listOf(33, 7, 2)
+          val comparison = (0 until maxOf(parts.size, target.size))
+            .map { parts.getOrElse(it) { 0 }.compareTo(target.getOrElse(it) { 0 }) }
+            .firstOrNull { it != 0 } ?: 0
+          if (requestedVersion.isNotEmpty() && comparison < 0) {
+            val flavor = if (requestedVersion.endsWith("-android")) "-android" else "-jre"
+            useVersion("33.7.2$flavor")
+            because("Fix CVE-2026-102554: uncontrolled memory allocation on deserialization")
+          }
+        }
       }
       force(
         "org.bouncycastle:bcprov-jdk18on:1.86",
