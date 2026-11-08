@@ -307,6 +307,15 @@ fun ChartboardScreen(
             }
         }
 
+        // 1.5. 50/30/20 Financial Health & Wellness Audit Card
+        item {
+            com.example.ui.components.FinancialHealthScoreCard(
+                transactions = transactions,
+                loans = loans,
+                onAskAiAdvisor = onAskAiAdvisor
+            )
+        }
+
         // 2. Timeframe Filter Chips
         item {
             Row(

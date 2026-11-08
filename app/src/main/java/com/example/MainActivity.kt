@@ -149,6 +149,15 @@ import com.example.ui.screens.BankCsvImportDialog
 import com.example.ui.screens.CategoryBudgetsScreen
 import com.example.ui.screens.RecurringTransactionsScreen
 import com.example.ui.screens.RecordLoanRepaymentDialog
+import com.example.ui.screens.SmartBillSplitterDialog
+import com.example.ui.screens.CurrencyConverterDialog
+import com.example.ui.screens.SavingsGoalsScreen
+import com.example.ui.screens.AddGoalDialog
+import androidx.compose.material.icons.filled.CurrencyExchange
+import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.Savings
+import androidx.compose.material.icons.filled.Shield
+import com.example.ui.viewmodel.BudgetViewModel
 import com.example.ui.theme.BudgetTrackerTheme
 import com.example.ui.theme.ExpenseRed
 import com.example.ui.theme.IncomeGreen
@@ -421,6 +430,15 @@ fun TransactionApp(
     var loanToMarkRepaid by remember { mutableStateOf<Loan?>(null) }
     var loanToRecordRepayment by remember { mutableStateOf<Loan?>(null) }
     var scannedDataForDialog by remember { mutableStateOf<ScannedSlipData?>(null) }
+    val budgetRepository = remember { BudgetRepository(context) }
+    val budgetViewModel: BudgetViewModel = viewModel(
+        key = "budget-viewmodel-${currentUser.uid}",
+        factory = BudgetViewModel.Factory(budgetRepository, null, currentUser.uid)
+    )
+    var showBillSplitterDialog by remember { mutableStateOf(false) }
+    var showCurrencyConverterDialog by remember { mutableStateOf(false) }
+    var budgetTabSubSelection by remember { mutableIntStateOf(0) }
+    var showAddGoalDialog by remember { mutableStateOf(false) }
 
     val createBackupLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json")
@@ -698,6 +716,26 @@ fun TransactionApp(
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         }
+                        IconButton(
+                            onClick = { showBillSplitterDialog = true },
+                            modifier = Modifier.testTag("split_bill_top_button")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Restaurant,
+                                contentDescription = "Split bill",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        IconButton(
+                            onClick = { showCurrencyConverterDialog = true },
+                            modifier = Modifier.testTag("currency_converter_top_button")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CurrencyExchange,
+                                contentDescription = "Currency converter",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
 
                     // Export & Share Statement Button
@@ -843,6 +881,21 @@ fun TransactionApp(
                             imageVector = Icons.Default.Add,
                             contentDescription = "Add Loan"
                         )
+                    }
+                }
+                4 -> {
+                    if (budgetTabSubSelection == 1) {
+                        FloatingActionButton(
+                            onClick = { showAddGoalDialog = true },
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.testTag("add_savings_goal_fab")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = "Add Savings Goal"
+                            )
+                        }
                     }
                 }
             }
@@ -998,6 +1051,146 @@ fun TransactionApp(
                                         color = MaterialTheme.colorScheme.primary,
                                         fontWeight = FontWeight.Bold
                                     )
+                                }
+                            }
+                        }
+
+                        // 3.5 Smart Financial Tools Quick Actions
+                        item {
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("smart_financial_tools_card"),
+                                shape = RoundedCornerShape(16.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+                                )
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(14.dp),
+                                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = "Smart Financial Tools",
+                                            style = MaterialTheme.typography.labelLarge,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Text(
+                                            text = "Quick actions",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        // Tool 1: Bill Splitter
+                                        Surface(
+                                            onClick = { showBillSplitterDialog = true },
+                                            shape = RoundedCornerShape(12.dp),
+                                            color = MaterialTheme.colorScheme.surface,
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .testTag("quick_tool_bill_splitter")
+                                        ) {
+                                            Column(
+                                                modifier = Modifier.padding(vertical = 10.dp, horizontal = 4.dp),
+                                                horizontalAlignment = Alignment.CenterHorizontally,
+                                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Restaurant,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                                Text("Split Bill", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                                            }
+                                        }
+
+                                        // Tool 2: Currency Converter
+                                        Surface(
+                                            onClick = { showCurrencyConverterDialog = true },
+                                            shape = RoundedCornerShape(12.dp),
+                                            color = MaterialTheme.colorScheme.surface,
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .testTag("quick_tool_currency")
+                                        ) {
+                                            Column(
+                                                modifier = Modifier.padding(vertical = 10.dp, horizontal = 4.dp),
+                                                horizontalAlignment = Alignment.CenterHorizontally,
+                                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.CurrencyExchange,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.tertiary,
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                                Text("Currency", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                                            }
+                                        }
+
+                                        // Tool 3: Savings Goals
+                                        Surface(
+                                            onClick = {
+                                                selectedTab = 4
+                                                budgetTabSubSelection = 1
+                                            },
+                                            shape = RoundedCornerShape(12.dp),
+                                            color = MaterialTheme.colorScheme.surface,
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .testTag("quick_tool_savings_goals")
+                                        ) {
+                                            Column(
+                                                modifier = Modifier.padding(vertical = 10.dp, horizontal = 4.dp),
+                                                horizontalAlignment = Alignment.CenterHorizontally,
+                                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Savings,
+                                                    contentDescription = null,
+                                                    tint = Color(0xFF10B981),
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                                Text("Savings", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                                            }
+                                        }
+
+                                        // Tool 4: 50/30/20 Health Audit
+                                        Surface(
+                                            onClick = { selectedTab = 1 },
+                                            shape = RoundedCornerShape(12.dp),
+                                            color = MaterialTheme.colorScheme.surface,
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .testTag("quick_tool_health_audit")
+                                        ) {
+                                            Column(
+                                                modifier = Modifier.padding(vertical = 10.dp, horizontal = 4.dp),
+                                                horizontalAlignment = Alignment.CenterHorizontally,
+                                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Shield,
+                                                    contentDescription = null,
+                                                    tint = Color(0xFF1976D2),
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                                Text("Health Score", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -1169,7 +1362,50 @@ fun TransactionApp(
                     )
                 }
                 4 -> {
-                    CategoryBudgetsScreen(database = database, transactions = transactions, userId = currentUser.uid)
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            FilterChip(
+                                selected = budgetTabSubSelection == 0,
+                                onClick = { budgetTabSubSelection = 0 },
+                                label = { Text("Category Budgets") },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.AccountBalanceWallet,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                },
+                                modifier = Modifier.weight(1f)
+                            )
+                            FilterChip(
+                                selected = budgetTabSubSelection == 1,
+                                onClick = { budgetTabSubSelection = 1 },
+                                label = { Text("Savings Goals") },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Savings,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+
+                        if (budgetTabSubSelection == 0) {
+                            CategoryBudgetsScreen(database = database, transactions = transactions, userId = currentUser.uid)
+                        } else {
+                            SavingsGoalsScreen(
+                                viewModel = budgetViewModel,
+                                onAddGoalRequested = { showAddGoalDialog = true }
+                            )
+                        }
+                    }
                 }
                 5 -> {
                     RecurringTransactionsScreen(database = database, userId = currentUser.uid)
@@ -1313,6 +1549,56 @@ fun TransactionApp(
             onSaved = {
                 loanToRecordRepayment = null
                 Toast.makeText(context, "Repayment recorded.", Toast.LENGTH_SHORT).show()
+            }
+        )
+    }
+
+    if (showBillSplitterDialog) {
+        SmartBillSplitterDialog(
+            onDismiss = { showBillSplitterDialog = false },
+            onSaveMyShareExpense = { amount, description, category ->
+                viewModel.insertTransaction(
+                    amount = amount,
+                    category = category,
+                    description = description,
+                    type = "expense"
+                )
+                Toast.makeText(context, "Logged share of ${com.example.util.ZarMoneyFormatter.format(amount)}", Toast.LENGTH_SHORT).show()
+            },
+            onSaveFriendLoan = { friendName, amount, note ->
+                viewModel.insertLoan(
+                    borrowerName = friendName,
+                    amount = amount,
+                    note = note
+                )
+                Toast.makeText(context, "Recorded loan for $friendName (${com.example.util.ZarMoneyFormatter.format(amount)})", Toast.LENGTH_SHORT).show()
+            }
+        )
+    }
+
+    if (showCurrencyConverterDialog) {
+        CurrencyConverterDialog(
+            onDismiss = { showCurrencyConverterDialog = false },
+            onApplyExpense = { zarAmount, note ->
+                viewModel.insertTransaction(
+                    amount = zarAmount,
+                    category = "Shopping",
+                    description = note,
+                    type = "expense"
+                )
+                Toast.makeText(context, "Logged ${com.example.util.ZarMoneyFormatter.format(zarAmount)} to expenses", Toast.LENGTH_SHORT).show()
+            }
+        )
+    }
+
+    if (showAddGoalDialog) {
+        AddGoalDialog(
+            currency = "R",
+            onDismiss = { showAddGoalDialog = false },
+            onConfirm = { title, target, current, targetDate, category, colorHex ->
+                budgetViewModel.addSavingsGoal(title, target, current, targetDate, category, colorHex)
+                showAddGoalDialog = false
+                Toast.makeText(context, "Added savings goal \"$title\"", Toast.LENGTH_SHORT).show()
             }
         )
     }

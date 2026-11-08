@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.Savings
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -117,6 +118,30 @@ fun SavingsGoalsScreen(
             SavingsSummaryBanner(
                 summary = savingsSummary,
                 currency = userProfile.currencySymbol
+            )
+        }
+
+        // 1.5 Emergency Fund & Safety Net Calculator
+        item {
+            val estimatedMonthlyEssentials = if (userProfile.dailyBudget > 0.0) {
+                userProfile.dailyBudget * 22.0
+            } else {
+                5000.0
+            }
+            EmergencyFundCalculatorCard(
+                monthlyEssentialEstimate = estimatedMonthlyEssentials,
+                currency = userProfile.currencySymbol,
+                existingEmergencyGoals = goals.filter { it.category.equals("Emergency Fund", ignoreCase = true) },
+                onCreateEmergencyGoal = { target, months ->
+                    viewModel.addSavingsGoal(
+                        title = "$months-Month Emergency Buffer",
+                        targetAmount = target,
+                        currentAmount = 0.0,
+                        targetDate = com.example.ui.util.DateUtils.getTodayIso(),
+                        category = "Emergency Fund",
+                        colorHex = "#10B981"
+                    )
+                }
             )
         }
 
@@ -791,3 +816,132 @@ fun EditGoalDialog(
         }
     )
 }
+
+@Composable
+fun EmergencyFundCalculatorCard(
+    monthlyEssentialEstimate: Double,
+    currency: String,
+    existingEmergencyGoals: List<SavingsGoal>,
+    onCreateEmergencyGoal: (target: Double, months: Int) -> Unit
+) {
+    val threeMonthTarget = monthlyEssentialEstimate * 3.0
+    val sixMonthTarget = monthlyEssentialEstimate * 6.0
+    val hasActiveEmergencyGoal = existingEmergencyGoals.isNotEmpty()
+
+    ElevatedCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("emergency_fund_calculator_card"),
+        colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.35f)),
+        shape = RoundedCornerShape(20.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .background(Color(0xFF10B981).copy(alpha = 0.15f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Shield,
+                            contentDescription = null,
+                            tint = Color(0xFF10B981),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Text(
+                            text = "Emergency Fund Calculator",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = if (hasActiveEmergencyGoal) "Active safety buffer tracking" else "Build a safety net for sudden life events",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            Text(
+                text = "Based on your estimated monthly essentials of $currency%.2f, experts recommend 3 to 6 months of living expenses in an accessible emergency reserve.".format(monthlyEssentialEstimate),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Surface(
+                    color = MaterialTheme.colorScheme.surface,
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text("3-Month Buffer", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                        Text(
+                            text = "$currency%.2f".format(threeMonthTarget),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Button(
+                            onClick = { onCreateEmergencyGoal(threeMonthTarget, 3) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(36.dp),
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)
+                        ) {
+                            Text("Set Goal", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+
+                Surface(
+                    color = MaterialTheme.colorScheme.surface,
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text("6-Month Complete", style = MaterialTheme.typography.labelSmall, color = Color(0xFF10B981), fontWeight = FontWeight.Bold)
+                        Text(
+                            text = "$currency%.2f".format(sixMonthTarget),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        OutlinedButton(
+                            onClick = { onCreateEmergencyGoal(sixMonthTarget, 6) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(36.dp),
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)
+                        ) {
+                            Text("Set Goal", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+

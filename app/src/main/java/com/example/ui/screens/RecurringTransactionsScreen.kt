@@ -265,6 +265,9 @@ fun RecurringTransactionsScreen(
                     }
                 }
             }
+            item {
+                com.example.ui.components.SubscriptionBurnRateCard(schedules = schedules)
+            }
             if (schedules.isEmpty()) {
                 item {
                     Card(shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth()) {
