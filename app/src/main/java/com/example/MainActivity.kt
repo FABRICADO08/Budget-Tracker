@@ -439,6 +439,7 @@ fun TransactionApp(
     var showCurrencyConverterDialog by remember { mutableStateOf(false) }
     var budgetTabSubSelection by remember { mutableIntStateOf(0) }
     var showAddGoalDialog by remember { mutableStateOf(false) }
+    var chartViewMode by remember { mutableIntStateOf(0) } // 0 = Bar Chart, 1 = Category Pie Chart
 
     val createBackupLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json")
@@ -937,9 +938,61 @@ fun TransactionApp(
                             )
                         }
 
-                        // 2. Dynamic Monthly Spending Bar Chart
+                        // 2. Dynamic Spending Visualizations (Bar Chart & Category Pie Chart)
                         item {
-                            MonthlySpendingBarChart(transactions = transactions)
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = if (chartViewMode == 0) "Monthly Trend" else "Category Mix",
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Surface(
+                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                        shape = RoundedCornerShape(12.dp)
+                                    ) {
+                                        Row(modifier = Modifier.padding(2.dp)) {
+                                            FilterChip(
+                                                selected = chartViewMode == 0,
+                                                onClick = { chartViewMode = 0 },
+                                                label = { Text("Bars", fontSize = 11.sp) },
+                                                shape = RoundedCornerShape(10.dp),
+                                                colors = FilterChipDefaults.filterChipColors(
+                                                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                                                ),
+                                                modifier = Modifier.testTag("chart_mode_bars_chip")
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            FilterChip(
+                                                selected = chartViewMode == 1,
+                                                onClick = { chartViewMode = 1 },
+                                                label = { Text("Pie", fontSize = 11.sp) },
+                                                shape = RoundedCornerShape(10.dp),
+                                                colors = FilterChipDefaults.filterChipColors(
+                                                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                                                ),
+                                                modifier = Modifier.testTag("chart_mode_pie_chip")
+                                            )
+                                        }
+                                    }
+                                }
+
+                                if (chartViewMode == 0) {
+                                    MonthlySpendingBarChart(transactions = transactions)
+                                } else {
+                                    com.example.ui.components.DynamicExpensePieChart(
+                                        transactions = selectedMonthTransactions,
+                                        title = "Expense Distribution ($dashboardMonthLabel)"
+                                    )
+                                }
+                            }
                         }
 
                         // 2.5 Quick Chartboard CTA

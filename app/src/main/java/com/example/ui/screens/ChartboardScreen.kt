@@ -540,6 +540,14 @@ fun ChartboardScreen(
             }
         }
 
+        // 3.8 Dynamic Category Expense Pie Chart
+        item {
+            com.example.ui.components.DynamicExpensePieChart(
+                transactions = focusedTransactions,
+                title = "Expense Distribution (${activeMonthPoint?.shortLabel ?: "Period"})"
+            )
+        }
+
         // 4. Category Breakdown Spectrum & Bars
         item {
             Card(
